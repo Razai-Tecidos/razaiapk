@@ -1,0 +1,27 @@
+{
+  "name": "razai-tools",
+  "private": true,
+  "version": "0.1.4",
+  "scripts": {
+    "dev": "npm --prefix app run dev",
+    "build": "npm --prefix app run build",
+    "preview": "npm --prefix app run preview",
+    "test": "npm --prefix app run test",
+    "test:ci": "npm --prefix app run test:ci",
+    "test:watch": "npm --prefix app run test:watch",
+    "typecheck": "npm --prefix app run typecheck",
+    "dev:tauri": "npm --prefix app run dev:tauri",
+    "build:tauri": "npm --prefix app run build:tauri",
+    "fix-encoding": "node scripts/fix-encoding.mjs --write",
+    "sync:version": "node scripts/sync-version.mjs",
+    "build:exe": "npm run sync:version && npm --prefix app run build && cargo build --release --manifest-path src-tauri/Cargo.toml",
+    "build:exe:embed": "npm run sync:version && cargo tauri build",
+    "build:portable": "node scripts/build-portable.mjs",
+    "build:release": "node scripts/build-release.mjs",
+    "verify:design": "npm --prefix app run build && node scripts/verify-design.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.84.0",
+    "git": "^0.1.5"
+  }
+}

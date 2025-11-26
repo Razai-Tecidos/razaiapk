@@ -1,0 +1,55 @@
+﻿# Razai Tools Deployment Package v0.1.4
+
+## Installation Instructions
+
+### Recommended Method: Portable ZIP
+1. Download azai-tools-portable-v0.1.4.zip
+2. Extract to desired location (e.g., C:\tools\razai-tools)
+3. Run azai-tools-v0.1.4.exe
+4. No installation or admin rights required
+
+### Alternative Method: NSIS Setup Wizard
+1. Run Razai-Tools-Setup-v0.1.4.exe
+2. Follow installation wizard
+3. Application will be installed to C:\Program Files\Razai Tools
+4. Creates Start Menu shortcuts
+
+### Advanced: Raw Executable (if included)
+- Direct execution without any setup
+- Run azai-tools-raw.exe from command line or terminal
+- Requires no installation
+
+## System Requirements
+- Windows 10 or later (x64)
+- 50 MB disk space
+- WebView2 runtime (usually pre-installed on modern Windows)
+
+## First Run
+- On first launch, app will create local database and cache directories
+- Allow approximately 5 seconds for initial startup
+- Check browser console (F12) if issues occur
+
+## Troubleshooting
+
+### App Won't Start
+1. Verify Windows is fully updated
+2. Install WebView2 if not already present: https://developer.microsoft.com/microsoft-edge/webview2/
+3. Try Portable ZIP instead of installer
+
+### Portable ZIP Won't Extract
+1. Ensure WinRAR, 7-Zip, or Windows built-in ZIP is available
+2. Try right-click > Extract All
+3. If permissions error occurs, extract to a different folder
+
+### Database Issues
+1. Delete %APPDATA%\razai-tools folder (contains cache/database)
+2. Restart application - it will recreate clean database
+
+## Version Information
+- Application Version: 0.1.4
+- Build Date: 2025-11-24 07:49:40
+- Distribution Formats: Portable ZIP, NSIS Installer
+- Test Status: 3/4 installers passed fresh install tests
+
+## Support
+For issues or questions, refer to FRESH_INSTALL_TEST_RESULTS.md for technical details.

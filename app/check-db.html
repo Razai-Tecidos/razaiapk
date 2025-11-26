@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Check IndexedDB</title>
+</head>
+<body>
+  <h1>Check Colors in IndexedDB</h1>
+  <button onclick="checkColors()">Check Colors</button>
+  <pre id="output"></pre>
+
+  <script>
+    async function checkColors() {
+      const output = document.getElementById('output');
+      output.textContent = 'Abrindo banco de dados...\n';
+      
+      const request = indexedDB.open('razai-tools', 7);
+      
+      request.onerror = () => {
+        output.textContent += 'Erro ao abrir banco!\n';
+      };
+      
+      request.onsuccess = async (e) => {
+        const db = e.target.result;
+        output.textContent += 'Banco aberto com sucesso!\n\n';
+        
+        const tx = db.transaction(['colors'], 'readonly');
+        const store = tx.objectStore('colors');
+        const allColors = await store.getAll();
+        
+        allColors.onsuccess = () => {
+          const colors = allColors.result;
+          output.textContent += `Total de cores: ${colors.length}\n\n`;
+          
+          colors.forEach(c => {
+            // Calculate hue
+            const lab = { L: c.labL, a: c.labA, b: c.labB };
+            let hue = Math.atan2(lab.b, lab.a) * (180/Math.PI);
+            if (hue < 0) hue += 360;
+            
+            // Determine expected family
+            let expectedFamily = '—';
+            const chroma = Math.sqrt(lab.a*lab.a + lab.b*lab.b);
+            const light = lab.L / 100;
+            
+            if (chroma < 5) {
+              if (light >= 0.9) expectedFamily = 'Branco';
+              else if (light <= 0.1) expectedFamily = 'Preto';
+              else expectedFamily = 'Cinza';
+            } else if (chroma >= 5 && chroma < 20 && light > 0.55 && hue >= 20 && hue < 95) {
+              expectedFamily = 'Bege';
+            } else if (light < 0.45 && hue >= 20 && hue < 55) {
+              expectedFamily = 'Marrom';
+            } else {
+              if (hue >= 55 && hue < 95) expectedFamily = 'Amarelo';
+              else if (hue >= 95 && hue < 170) expectedFamily = 'Verde';
+              else if (hue >= 170 && hue < 270) expectedFamily = 'Azul';
+              else if (hue >= 270 && hue < 310) expectedFamily = 'Roxo';
+              else if (hue >= 310 && hue < 345) expectedFamily = 'Rosa';
+              else if ((hue >= 345 && hue <= 360) || hue < 20) expectedFamily = 'Vermelho';
+              else if (hue >= 20 && hue < 55) expectedFamily = 'Laranja';
+            }
+            
+            output.textContent += `Nome: ${c.name}\n`;
+            output.textContent += `  HEX: ${c.hex}\n`;
+            output.textContent += `  LAB: L=${c.labL.toFixed(2)}, a=${c.labA.toFixed(2)}, b=${c.labB.toFixed(2)}\n`;
+            output.textContent += `  Hue: ${hue.toFixed(2)}°\n`;
+            output.textContent += `  Chroma: ${chroma.toFixed(2)}\n`;
+            output.textContent += `  Lightness: ${(light*100).toFixed(2)}%\n`;
+            output.textContent += `  Família esperada: ${expectedFamily}\n`;
+            output.textContent += `  SKU: ${c.sku}\n\n`;
+          });
+        };
+      };
+    }
+  </script>
+</body>
+</html>

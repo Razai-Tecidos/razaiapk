@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../RazaiToolsMobile"
+		}
+	],
+	"settings": {
+		"powershell.cwd": "Razai Tools"
+	}
+}

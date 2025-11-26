@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" ry="96" fill="#0ea5e9"/>
+  <g fill="#081016" font-family="Segoe UI, Roboto, Arial, sans-serif" font-weight="700">
+    <text x="50%" y="54%" font-size="200" text-anchor="middle" dominant-baseline="middle">RZ</text>
+  </g>
+</svg>

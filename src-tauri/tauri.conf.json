@@ -1,0 +1,29 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Razai Tools",
+  "identifier": "com.razai.tools",
+  "build": {
+    "beforeDevCommand": "powershell -NoProfile -Command $env:PORT=5174; if (Test-Path '..\\app\\package.json') { npm --prefix ..\\app run dev:web } else { npm --prefix app run dev:web }",
+    "beforeBuildCommand": "powershell -NoProfile -Command npm run sync:version; if (Test-Path '..\\app\\package.json') { npm --prefix ..\\app run build } else { npm --prefix app run build }",
+    "frontendDist": "../app/dist",
+    "devUrl": "http://localhost:5174"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Razai Tools",
+        "width": 1200,
+        "height": 800,
+        "resizable": true
+      }
+    ]
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/icon.ico",
+      "icons/icon.svg"
+    ]
+  }
+}

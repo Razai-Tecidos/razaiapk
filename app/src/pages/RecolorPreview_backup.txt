@@ -1,0 +1,168 @@
+﻿import React, { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { Paper, Title, Text, Select, Anchor, Group, FileInput, Stack, Divider, Alert, Button } from '@mantine/core'
+import { FabricColorPreview } from '@/components/FabricColorPreview'
+import { colorsDb, db, linksDb } from '@/lib/db'
+import { hexToLab, type LAB } from '@/lib/color-utils'
+import type { Color } from '@/types/color'
+import type { Tissue } from '@/types/tissue'
+import type { TecidoCorView } from '@/types/tecidoCor'
+import type { RazaiColor } from '@/lib/recolor/recolorEngine'
+import { importFullBackup } from '@/lib/import'
+import { DS } from '@/design-system/tokens'
+
+function toRazaiColor(c: Color): RazaiColor | null {
+  // Prefer provided LAB; fallback to HEX; else skip
+  const lab: LAB | undefined = (typeof c.labL === 'number' && typeof c.labA === 'number' && typeof c.labB === 'number')
+    ? { L: c.labL, a: c.labA, b: c.labB }
+    : (c.hex ? hexToLab(c.hex) : undefined)
+  if (!lab) return null
+  return { lab, hex: c.hex || '#' }
+}
+
+export default function RecolorPreviewPage() {
+  const [colors, setColors] = useState<RazaiColor[]>([])
+  const [linksForColors, setLinksForColors] = useState<{ skuFilho: string; id: string }[]>([])
+  const [tissues, setTissues] = useState<Tissue[]>([])
+  const [selectedTissueId, setSelectedTissueId] = useState<string>('')
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState<string>('')
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      try {
+        // Ensure DB schema ready (SQLite/IndexedDB)
+        try { await db.init() } catch {}
+        const [tissuesList] = await Promise.all([
+          db.listTissues(),
+        ])
+        if (cancelled) return
+        setTissues(tissuesList)
+        // Default behavior: no tissue selected â†’ show nothing until choose (or fallback demo if desired)
+        setColors([])
+        setLinksForColors([])
+      } catch {
+        // On error, keep empty
+        setTissues([])
+        setColors([])
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [])
+
+  // When a tissue is selected, load only its linked colors
+  useEffect(() => {
+    let cancelled = false
+    async function loadLinkedColors() {
+      if (!selectedTissueId) { setColors([]); setLinksForColors([]); return }
+      try {
+        const [links, allColors] = await Promise.all([
+          linksDb.list(),
+          colorsDb.listColors(),
+        ])
+        if (cancelled) return
+        const activeForTissue = (links as TecidoCorView[]).filter(l => l.tissueId === selectedTissueId && l.status === 'Ativo')
+        const byId = new Map(allColors.map(c => [c.id, c]))
+        const mappedColors: RazaiColor[] = []
+        const mappedLinks: { skuFilho: string; id: string }[] = []
+        for (const link of activeForTissue) {
+          const c = byId.get(link.colorId)
+          if (!c) continue
+          const lab: LAB | undefined = (typeof c.labL === 'number' && typeof c.labA === 'number' && typeof c.labB === 'number')
+            ? { L: c.labL!, a: c.labA!, b: c.labB! }
+            : (c.hex ? hexToLab(c.hex) : undefined)
+          if (!lab) continue
+          mappedColors.push({ hex: c.hex || '#', lab, name: c.name })
+          mappedLinks.push({ skuFilho: link.skuFilho, id: link.id })
+        }
+        setColors(mappedColors)
+        setLinksForColors(mappedLinks)
+      } catch (e) {
+        console.warn('[recolor] failed to load linked colors', e)
+        setColors([])
+        setLinksForColors([])
+      }
+    }
+    loadLinkedColors()
+    return () => { cancelled = true }
+  }, [selectedTissueId])
+
+  return (
+    <Stack gap="md">
+      <div>
+        <Title order={2} mb={4}>Recolor de Tecido</Title>
+        <Text c="dimmed" size="sm">
+          1) Selecione um tecido cadastrado para listar apenas as cores vinculadas a ele. 2) Carregue uma foto do tecido. 3) Escolha a cor para aplicar sobre a textura neutralizada. Ajustes finos de brilho/saturaÃ§Ã£o/matiz estÃ£o abaixo.
+        </Text>
+      </div>
+
+      {tissues.length === 0 && (
+        <Paper withBorder p="md" radius="md">
+          <Stack gap="xs">
+            <Text fw={600}>Nenhum tecido encontrado</Text>
+            <Text c="dimmed" size="sm">
+              Para usar esta prÃ©via, vocÃª precisa ter pelo menos 1 tecido cadastrado e vincular cores a ele. VocÃª pode:
+            </Text>
+            <ul style={{ margin: '0 0 0 18px' }}>
+              <li><Anchor component={Link} to="/tecidos">Cadastrar em Tecidos</Anchor> e depois vincular em <Anchor component={Link} to="/tecido-cor">Tecidoâ€‘Cor</Anchor></li>
+              <li>Ou importar um backup completo (JSON) em <Anchor component={Link} to="/exportacoes">ExportaÃ§Ãµes</Anchor></li>
+            </ul>
+            <Group align="end">
+              <FileInput
+                label="Importar backup completo (JSON)"
+                accept="application/json,.json"
+                onChange={async (f) => {
+                  if (!f) return
+                  setBusy(true)
+                  setMessage('')
+                  try {
+                    const text = await f.text()
+                    await importFullBackup(text, {
+                      createTissue: (input) => import('@/lib/db').then(m=>m.db.createTissue(input)),
+                      createColor: (input) => import('@/lib/db').then(m=>m.colorsDb.createColor(input)),
+                      createPattern: (input) => import('@/lib/db').then(m=>m.patternsDb.createPattern(input)),
+                    })
+                    const next = await db.listTissues()
+                    setTissues(next)
+                    setMessage('ImportaÃ§Ã£o concluÃ­da!')
+                  } catch (err: any) {
+                    setMessage('Falha ao importar: ' + (err?.message || String(err)))
+                  } finally {
+                    setBusy(false)
+                  }
+                }}
+                disabled={busy}
+              />
+              {message && <Text size="sm" c="dimmed">{message}</Text>}
+            </Group>
+          </Stack>
+        </Paper>
+      )}
+
+      <Paper withBorder p="md" radius="md">
+        <Group grow align="end">
+          <Select
+            label="Tecido"
+            placeholder="Selecione um tecido"
+            value={selectedTissueId}
+            onChange={(v)=> setSelectedTissueId(v || '')}
+            data={tissues.map(t => ({ value: t.id, label: `${t.sku} â€” ${t.name}` }))}
+          />
+          <Text size="sm" c="dimmed">
+            {selectedTissueId ? `${colors.length} cor(es) vinculadas encontradas` : 'Selecione um tecido para listar cores vinculadas'}
+          </Text>
+        </Group>
+      </Paper>
+
+      <FabricColorPreview
+        colors={colors}
+        linksForColors={linksForColors}
+        tissueName={tissues.find(t => t.id === selectedTissueId)?.name}
+      />
+    </Stack>
+  )
+}
+
+
