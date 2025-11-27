@@ -34,3 +34,5 @@ portable/
 release/
 portable.zip
 test-images/
+.vercel
+.env*.local

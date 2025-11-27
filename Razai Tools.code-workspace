@@ -8,6 +8,7 @@
 		}
 	],
 	"settings": {
-		"powershell.cwd": "Razai Tools"
+		"powershell.cwd": "Razai Tools",
+		"chat.customAgentInSubagent.enabled": true
 	}
 }
