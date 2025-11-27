@@ -97,10 +97,10 @@ alter table public.family_stats enable row level security;
 create policy "Public Access Family Stats" on public.family_stats for all using (true);
 
 alter table public.links enable row level security;
-create policy "Public Access Links" on public.links for all using (true);
+create policy "Public Access Links" on public.links for all using (true) with check (true);
 
 alter table public.pattern_links enable row level security;
-create policy "Public Access Pattern Links" on public.pattern_links for all using (true);
+create policy "Public Access Pattern Links" on public.pattern_links for all using (true) with check (true);
 
 alter table public.stock_items enable row level security;
 create policy "Public Access Stock Items" on public.stock_items for all using (true);

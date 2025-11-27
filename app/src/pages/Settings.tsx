@@ -12,6 +12,15 @@ import HueWheelPanel from '@/components/settings/HueWheelPanel'
 import { DEFAULT_HUE_BOUNDS } from '@/lib/color-utils'
 import { getConfig as getCloudConfig, saveConfig as saveCloudConfig, uploadNewBackup, manualRestoreLatest, autoImportIfNeeded, fetchManifest, getLastUploadRecord, listBackups, restoreBackup } from '@/lib/cloud-sync'
 
+// React Router throws if useNavigate runs outside a router; expose a safe fallback.
+function useOptionalNavigate(): ReturnType<typeof useNavigate> | null {
+  try {
+    return useNavigate()
+  } catch (error) {
+    return null
+  }
+}
+
 // Componente de configuração da nuvem (interno para simplificação)
 interface CloudConfigProps {
   cloudUrl: string; setCloudUrl: (v: string)=>void;
@@ -72,7 +81,7 @@ function CloudConfig(props: CloudConfigProps) {
     setCloudWorking(true)
     try {
       const r = await manualRestoreLatest()
-      setCloudStatus(`✅ Restauração concluída: ${r?.colorsImported || 0} cores`) // simples resumo
+      setCloudStatus(`✅ Restauração concluída: ${r?.colorsImported || 0} itens`) // simples resumo
       setTimeout(()=> setCloudStatus(''), 6000)
     } catch (e: any) {
       alert('Falha ao restaurar: ' + (e?.message || e))
@@ -102,7 +111,7 @@ function CloudConfig(props: CloudConfigProps) {
     try {
       const r = await restoreBackup(filename)
       if (!r.ok) throw new Error(r.reason)
-      setCloudStatus(`✅ Restaurado ${filename}: ${r.colorsImported || 0} cores`)
+      setCloudStatus(`✅ Restaurado ${filename}: ${r.colorsImported || 0} itens`)
     } catch (e: any) {
       alert('Falha ao restaurar: ' + e.message)
     } finally {
@@ -115,7 +124,8 @@ function CloudConfig(props: CloudConfigProps) {
     try {
       const manifest = await fetchManifest()
       const last = getLastUploadRecord()
-      setCloudStatus(last ? `Último backup local: ${new Date(last.timestamp).toLocaleString()} | Manifesto versões: ${manifest?.backups?.length || 0}` : 'Manifesto carregado.')
+      const manifestInfo = manifest ? `${new Date(manifest.updated_at).toLocaleString()} | hash ${manifest.hash.slice(0,6)}…` : 'sem manifesto'
+      setCloudStatus(last ? `Último backup local: ${new Date(last.ts).toLocaleString()} | Manifesto: ${manifestInfo}` : 'Manifesto carregado.')
       setTimeout(()=> setCloudStatus(''), 6000)
     } catch (e: any) {
       alert('Falha ao obter manifesto: ' + (e?.message || e))
@@ -274,7 +284,11 @@ function CloudConfig(props: CloudConfigProps) {
 }
 
 export default function Settings() {
-  const navigate = useNavigate()
+  const navigate = useOptionalNavigate()
+  const handleOpenMigration = useCallback(() => {
+    if (!navigate) return
+    navigate('/migration')
+  }, [navigate])
   const [delta, setDelta] = useState<number>(DEFAULT_DE_THRESHOLD)
   const [compression, setCompression] = useState<number>(0.8)
   const [saving, setSaving] = useState(false)
@@ -371,8 +385,14 @@ export default function Settings() {
       const text = await file.text()
       const data = JSON.parse(text)
       const result = await syncDb.importAll(data, 'merge')
-      const msg = `Importação concluída:\n\nTecidos: ${result.tissuesInserted} novos, ${result.tissuesUpdated} atualizados\nCores: ${result.colorsInserted} novas, ${result.colorsUpdated} atualizadas\nEstampas: ${result.patternsInserted} novas, ${result.patternsUpdated} atualizadas\nVínculos Cor: ${result.tecidoCorInserted} novos, ${result.tecidoCorUpdated} atualizados\nVínculos Estampa: ${result.tecidoEstampaInserted} novos, ${result.tecidoEstampaUpdated} atualizados`
-      setImportResult(msg)
+      const msgLines = [
+        `Tecidos: +${result.tissuesInserted} / ~${result.tissuesUpdated} atualizados`,
+        `Cores: +${result.colorsInserted} / ~${result.colorsUpdated} atualizadas`,
+        `Estampas: +${result.patternsInserted} / ~${result.patternsUpdated} atualizadas`,
+        `Vínculos Cor: +${result.tecidoCorInserted} / ~${result.tecidoCorUpdated} atualizados`,
+        `Vínculos Estampa: +${result.tecidoEstampaInserted} / ~${result.tecidoEstampaUpdated} atualizados`
+      ]
+      setImportResult(['Importação concluída:', ...msgLines].join('\n'))
       setTimeout(() => setImportResult(null), 8000)
       input.value = ''
     } catch (e: any) {
@@ -663,7 +683,7 @@ export default function Settings() {
         <div style={{color:DS.color.textSecondary, fontSize:DS.font.size.sm, lineHeight: 1.6, marginBottom: DS.spacing(3)}}>
           Ferramenta administrativa para enviar todos os dados locais para o banco de dados Supabase. Use apenas na configuração inicial.
         </div>
-        <Button variant="outline" color="blue" onClick={() => navigate('/migration')}>
+        <Button variant="outline" color="blue" disabled={!navigate} onClick={handleOpenMigration}>
           Abrir Ferramenta de Migração
         </Button>
       </div>

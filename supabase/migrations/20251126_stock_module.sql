@@ -34,7 +34,7 @@ create index if not exists idx_movements_link_date_type
 -- Habilitar RLS
 alter table public.stock_movements enable row level security;
 create policy "Public Read Movements" on public.stock_movements for select using (true);
-create policy "Public Write Movements" on public.stock_movements for insert using (true);
+create policy "Public Write Movements" on public.stock_movements for insert with check (true);
 
 -- 3. View para Consumo Diário (Base para o Algoritmo de Previsão)
 create or replace view public.daily_stock_consumption as

@@ -4,6 +4,23 @@ import { supabase } from '@/lib/supabase'
 
 type UserRole = 'admin' | 'collaborator' | null
 
+const ROLE_CACHE_PREFIX = 'razai-role:'
+
+const readCachedRole = (userId?: string | null): UserRole => {
+  if (!userId || typeof window === 'undefined') return null
+  const value = window.sessionStorage.getItem(`${ROLE_CACHE_PREFIX}${userId}`)
+  return value === 'admin' ? 'admin' : value === 'collaborator' ? 'collaborator' : null
+}
+
+const writeCachedRole = (userId: string, role: UserRole | null) => {
+  if (typeof window === 'undefined') return
+  if (!role) {
+    window.sessionStorage.removeItem(`${ROLE_CACHE_PREFIX}${userId}`)
+  } else {
+    window.sessionStorage.setItem(`${ROLE_CACHE_PREFIX}${userId}`, role)
+  }
+}
+
 interface AuthContextType {
   session: Session | null
   user: User | null
@@ -32,28 +49,88 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let isMounted = true
-    
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    let sessionToken = 0
+
+    const normalizeRole = (raw?: string | null): UserRole => (raw === 'admin' ? 'admin' : 'collaborator')
+
+    const resolveSession = async (nextSession: Session | null) => {
       if (!isMounted) return
-      console.log('[auth] Initial session:', session ? 'logged in' : 'no session')
-      setSession(session)
-      setUser(session?.user ?? null)
-      setRole((session?.user?.user_metadata?.role as UserRole) || 'admin')
-      console.log('[auth] Setting loading to false')
-      setLoading(false)
-    })
+
+      const currentToken = ++sessionToken
+      setSession(nextSession)
+      setUser(nextSession?.user ?? null)
+
+      if (!nextSession?.user) {
+        setRole(null)
+        setLoading(false)
+        return
+      }
+
+      const cachedRole = readCachedRole(nextSession.user.id)
+      if (cachedRole) {
+        setRole(cachedRole)
+        setLoading(false)
+      } else {
+        setLoading(true)
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', nextSession.user.id)
+          .single()
+
+        if (!isMounted || currentToken !== sessionToken) return
+
+        if (error) {
+          console.error('[auth] Role fetch error:', error.message)
+          const fallback = normalizeRole(undefined)
+          setRole(fallback)
+          writeCachedRole(nextSession.user.id, fallback)
+        } else {
+          const resolved = normalizeRole(data?.role ?? null)
+          setRole(resolved)
+          writeCachedRole(nextSession.user.id, resolved)
+        }
+      } catch (err) {
+        if (!isMounted || currentToken !== sessionToken) return
+        console.error('[auth] Role fetch exception:', err)
+        const fallback = normalizeRole(undefined)
+        setRole(fallback)
+        writeCachedRole(nextSession.user.id, fallback)
+      } finally {
+        if (isMounted && currentToken === sessionToken) {
+          setLoading(false)
+        }
+      }
+    }
+
+    const init = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        console.log('[auth] Initial session:', session ? 'logged in' : 'no session')
+        if (!isMounted) return
+        await resolveSession(session)
+      } catch (err) {
+        if (!isMounted) return
+        console.error('[auth] getSession error:', err)
+        setSession(null)
+        setUser(null)
+        setRole(null)
+        setLoading(false)
+      }
+    }
+
+    init()
 
     // Listen for auth changes (login, logout, token refresh)
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       if (!isMounted) return
-      console.log('[auth] Auth state changed:', _event, session ? 'has session' : 'no session')
-      setSession(session)
-      setUser(session?.user ?? null)
-      setRole((session?.user?.user_metadata?.role as UserRole) || 'admin')
-      setLoading(false)
+      console.log('[auth] Auth state changed:', _event, nextSession ? 'has session' : 'no session')
+      resolveSession(nextSession)
     })
 
     return () => {

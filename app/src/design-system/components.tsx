@@ -55,8 +55,8 @@ export const Toolbar: React.FC<React.PropsWithChildren<{ gap?: number; wrap?: bo
   }}>{children}</div>
 )
 
-export const Stack: React.FC<React.PropsWithChildren<{ gap?: number; align?: React.CSSProperties['alignItems'] }>> = ({ children, gap = 6, align }) => (
-  <div style={{ display:'flex', flexDirection:'column', gap: DS.spacing(gap), alignItems: align }}>{children}</div>
+export const Stack: React.FC<React.PropsWithChildren<{ gap?: number; align?: React.CSSProperties['alignItems']; style?: React.CSSProperties }>> = ({ children, gap = 6, align, style }) => (
+  <div style={{ display:'flex', flexDirection:'column', gap: DS.spacing(gap), alignItems: align, ...style }}>{children}</div>
 )
 
 type RowProps = React.HTMLAttributes<HTMLDivElement> & { gap?: number; wrap?: boolean; justify?: React.CSSProperties['justifyContent']; align?: React.CSSProperties['alignItems'] }
@@ -262,13 +262,13 @@ export const DSButton: React.FC<ButtonProps> = ({ variant='solid', size='md', to
     opacity: disabled ? 0.55 : 1,
     pointerEvents: disabled ? 'none' : 'auto',
     touchAction: 'manipulation',
-    ...styleProp
+    ...(styleProp ?? {})
   }
 
   const baseVisual = {
-    background: baseStyle.background as string | undefined,
-    borderColor: baseStyle.borderColor as string | undefined,
-    color: baseStyle.color as string | undefined,
+    background: (baseStyle.background as string | undefined) ?? variantStyles.background,
+    borderColor: (baseStyle.borderColor as string | undefined) ?? variantStyles.borderColor,
+    color: (baseStyle.color as string | undefined) ?? variantStyles.color,
     boxShadow: (baseStyle.boxShadow as string | undefined) ?? variantStyles.boxShadow,
     transform: (baseStyle.transform as string | undefined) ?? variantStyles.baseTransform
   }

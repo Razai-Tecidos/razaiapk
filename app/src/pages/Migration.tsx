@@ -228,7 +228,9 @@ export default function MigrationPage() {
   // Helper to compress image while maintaining resolution
   const compressImage = async (fileData: Uint8Array, mimeType: string): Promise<{ blob: Blob, mime: string }> => {
     return new Promise((resolve) => {
-      const blob = new Blob([fileData], { type: mimeType })
+      const buffer = new ArrayBuffer(fileData.byteLength)
+      new Uint8Array(buffer).set(fileData)
+      const blob = new Blob([buffer], { type: mimeType })
       const url = URL.createObjectURL(blob)
       const img = new Image()
       

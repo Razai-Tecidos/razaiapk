@@ -104,7 +104,7 @@ const OpenFolderButton: React.FC<{ path: string }> = ({ path }) => {
     }
   }
   return (
-    <DSButton size="xs" variant="ghost" onClick={handleOpen}>Abrir</DSButton>
+    <DSButton size="sm" variant="ghost" onClick={handleOpen}>Abrir</DSButton>
   )
 }
 

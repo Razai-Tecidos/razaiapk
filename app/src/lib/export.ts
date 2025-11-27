@@ -50,8 +50,7 @@ function stableStringify(v: any): string {
 function sanitizeForHash<T>(input: T): T {
   if (input === null) return input
   if (Array.isArray(input)) {
-    // @ts-expect-error - generic return
-    return input.map(sanitizeForHash) as any
+    return input.map(item => sanitizeForHash(item)) as unknown as T
   }
   if (typeof input === 'object') {
     const out: any = {}

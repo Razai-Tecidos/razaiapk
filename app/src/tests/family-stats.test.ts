@@ -2,6 +2,13 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { familyStatsDb, colorsDb } from '@/lib/db'
 import { labHueAngle } from '@/lib/color-utils'
 
+function ensureNumber(value: number | null | undefined, context: string): number {
+  if (value === null || value === undefined) {
+    throw new Error(`${context} expected number but received ${value}`)
+  }
+  return value
+}
+
 describe('Family Statistics System', () => {
   beforeEach(async () => {
     // Clear all data before each test
@@ -17,39 +24,47 @@ describe('Family Statistics System', () => {
   describe('familyStatsDb.updateStat', () => {
     it('should create new stat for first color in family', async () => {
       await familyStatsDb.updateStat('Vermelho', 10)
-      
+
       const stats = await familyStatsDb.list()
       const vermelho = stats.find(s => s.familyName === 'Vermelho')
-      
+
       expect(vermelho).toBeDefined()
-      expect(vermelho?.hueMin).toBe(10)
-      expect(vermelho?.hueMax).toBe(10)
-      expect(vermelho?.hueAvg).toBe(10)
+      const hueMin = ensureNumber(vermelho?.hueMin, 'Vermelho hueMin')
+      const hueMax = ensureNumber(vermelho?.hueMax, 'Vermelho hueMax')
+      const hueAvg = ensureNumber(vermelho?.hueAvg, 'Vermelho hueAvg')
+      expect(hueMin).toBe(10)
+      expect(hueMax).toBe(10)
+      expect(hueAvg).toBe(10)
       expect(vermelho?.colorCount).toBe(1)
     })
 
     it('should update existing stat when adding second color', async () => {
       await familyStatsDb.updateStat('Vermelho', 10)
       await familyStatsDb.updateStat('Vermelho', 20)
-      
+
       const stats = await familyStatsDb.list()
       const vermelho = stats.find(s => s.familyName === 'Vermelho')
-      
-      expect(vermelho?.hueMin).toBe(10)
-      expect(vermelho?.hueMax).toBe(20)
-      expect(vermelho?.hueAvg).toBe(15) // (10 + 20) / 2
+
+      const hueMin = ensureNumber(vermelho?.hueMin, 'Vermelho hueMin')
+      const hueMax = ensureNumber(vermelho?.hueMax, 'Vermelho hueMax')
+      const hueAvg = ensureNumber(vermelho?.hueAvg, 'Vermelho hueAvg')
+      expect(hueMin).toBe(10)
+      expect(hueMax).toBe(20)
+      expect(hueAvg).toBe(15)
       expect(vermelho?.colorCount).toBe(2)
     })
 
     it('should handle hue wrap-around correctly (350° + 10°)', async () => {
       await familyStatsDb.updateStat('Vermelho', 350)
       await familyStatsDb.updateStat('Vermelho', 10)
-      
+
       const stats = await familyStatsDb.list()
       const vermelho = stats.find(s => s.familyName === 'Vermelho')
-      
-      expect(vermelho?.hueMin).toBe(10)
-      expect(vermelho?.hueMax).toBe(350)
+
+      const hueMin = ensureNumber(vermelho?.hueMin, 'Vermelho hueMin')
+      const hueMax = ensureNumber(vermelho?.hueMax, 'Vermelho hueMax')
+      expect(hueMin).toBe(10)
+      expect(hueMax).toBe(350)
       expect(vermelho?.colorCount).toBe(2)
     })
 
@@ -57,12 +72,12 @@ describe('Family Statistics System', () => {
       await familyStatsDb.updateStat('Azul', 200)
       await familyStatsDb.updateStat('Azul', 210)
       await familyStatsDb.updateStat('Azul', 230)
-      
+
       const stats = await familyStatsDb.list()
       const azul = stats.find(s => s.familyName === 'Azul')
-      
-      // Average: (200 + 210 + 230) / 3 = 213.33...
-      expect(azul?.hueAvg).toBeCloseTo(213.33, 1)
+
+      const hueAvg = ensureNumber(azul?.hueAvg, 'Azul hueAvg')
+      expect(hueAvg).toBeCloseTo(213.33, 1)
       expect(azul?.colorCount).toBe(3)
     })
   })
@@ -79,12 +94,12 @@ describe('Family Statistics System', () => {
 
       const stats = await familyStatsDb.list()
       const laranja = stats.find(s => s.familyName === 'Laranja')
-      
+      const expectedHue = labHueAngle({ L: 50, a: 30, b: 40 })
       expect(laranja).toBeDefined()
       expect(laranja?.colorCount).toBe(1)
-      
-      const expectedHue = labHueAngle({ L: 50, a: 30, b: 40 })
-      expect(laranja?.hueAvg).toBeCloseTo(expectedHue, 1)
+
+      const hueAvg = ensureNumber(laranja?.hueAvg, 'Laranja hueAvg')
+      expect(hueAvg).toBeCloseTo(expectedHue, 1)
     })
 
     it('should create new custom family "Salmão" and track stats', async () => {
@@ -123,10 +138,12 @@ describe('Family Statistics System', () => {
 
       const stats = await familyStatsDb.list()
       const verde = stats.find(s => s.familyName === 'Verde')
-      
+
       expect(verde).toBeDefined()
+      const hueMin = ensureNumber(verde?.hueMin, 'Verde hueMin')
+      const hueMax = ensureNumber(verde?.hueMax, 'Verde hueMax')
       expect(verde?.colorCount).toBe(2)
-      expect(verde?.hueMin).toBeLessThan(verde!.hueMax)
+      expect(hueMin).toBeLessThan(hueMax)
     })
 
     it('should use LAB fallback when name has no family', async () => {
@@ -297,8 +314,8 @@ describe('Family Statistics System', () => {
       // Stats should be ordered by hueAvg (circular order)
       for (let i = 1; i < stats.length; i++) {
         // Allow for circular wrap-around
-        const prevHue = stats[i - 1].hueAvg
-        const currHue = stats[i].hueAvg
+        const prevHue = ensureNumber(stats[i - 1].hueAvg, 'previous hueAvg')
+        const currHue = ensureNumber(stats[i].hueAvg, 'current hueAvg')
         
         // Either increasing or wrapping around (359 -> 0)
         const isIncreasing = currHue >= prevHue
@@ -345,9 +362,11 @@ describe('Family Statistics System', () => {
       const stats = await familyStatsDb.list()
       const azul = stats.find(s => s.familyName === 'Azul')
       
-      expect(azul?.colorCount).toBe(2)
       expect(azul).toBeDefined()
-      expect(azul!.hueMax - azul!.hueMin).toBeLessThan(5) // Very close hues
+      const hueMin = ensureNumber(azul?.hueMin, 'hueMin')
+      const hueMax = ensureNumber(azul?.hueMax, 'hueMax')
+      expect(azul?.colorCount).toBe(2)
+      expect(hueMax - hueMin).toBeLessThan(5) // Very close hues
     })
 
     it('should handle color with extreme LAB values', async () => {

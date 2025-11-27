@@ -1,7 +1,22 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { notifications } from '@mantine/notifications'
 import { DS } from '../../design-system/tokens'
 import { supabase, isSupabaseConfigured } from '../../lib/supabase'
+import { StatCard } from '@/components/StatCard'
+let IconSearch: any
+let IconBolt: any
+let IconChevronRight: any
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const icons = require('@tabler/icons-react')
+  IconSearch = icons.IconSearch
+  IconBolt = icons.IconBolt
+  IconChevronRight = icons.IconChevronRight
+} catch {
+  IconSearch = () => null
+  IconBolt = () => null
+  IconChevronRight = () => null
+}
 
 // ================================
 // Types

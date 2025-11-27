@@ -33,7 +33,7 @@ if (typeof Node === 'function' && Node.prototype) {
       if (console) console.error('Cannot remove a child from a different parent', child, this)
       return child
     }
-    return originalRemoveChild.apply(this, arguments) as any
+    return originalRemoveChild.call(this, child) as any
   }
 
   const originalInsertBefore = Node.prototype.insertBefore
@@ -42,7 +42,7 @@ if (typeof Node === 'function' && Node.prototype) {
       if (console) console.error('Cannot insert before a reference node from a different parent', referenceNode, this)
       return newNode
     }
-    return originalInsertBefore.apply(this, arguments) as any
+    return originalInsertBefore.call(this, newNode, referenceNode) as any
   }
 }
 

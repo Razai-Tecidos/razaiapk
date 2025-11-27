@@ -273,7 +273,7 @@ export function getLastUploadRecord(): { ok: boolean; ts: number; reason?: strin
  *  - If newer: download and import via importFullBackupExact
  *  - Sets last import timestamp upon success
  */
-export async function autoImportIfNeeded(): Promise<{ performed: boolean; reason?: string }> {
+export async function autoImportIfNeeded(): Promise<{ performed: boolean; reason?: string; imported?: number }> {
   const cfg = getConfig()
   if (!cfg.auto) return { performed: false, reason: 'auto disabled' }
   const manifest = await fetchManifest()
@@ -291,12 +291,15 @@ export async function autoImportIfNeeded(): Promise<{ performed: boolean; reason
   const imported = await importBackupInWorker(backupJson)
   if (!imported.ok) return { performed: false, reason: imported.error || 'import failed' }
   setLastImportTimestamp(Date.now())
+  const totalInserted = typeof imported.inserted === 'object'
+    ? Object.values(imported.inserted).reduce((acc: number, n: any) => acc + (typeof n === 'number' ? n : 0), 0)
+    : 0
   console.log('[cloud-sync] Imported cloud backup. Inserted:', imported.inserted)
-  return { performed: true }
+  return { performed: true, imported: totalInserted }
 }
 
 /** Manual restore ignoring timestamp check */
-export async function manualRestoreLatest(): Promise<{ ok: boolean; reason?: string }> {
+export async function manualRestoreLatest(): Promise<{ ok: boolean; reason?: string; colorsImported?: number }> {
   const backupJson = await downloadLatestBackup()
   if (!backupJson) return { ok: false, reason: 'download failed' }
   // Tenta obter manifesto para validar hash; se não existir, ainda valida integridade
@@ -306,7 +309,7 @@ export async function manualRestoreLatest(): Promise<{ ok: boolean; reason?: str
   const imported = await importBackupInWorker(backupJson)
   if (!imported.ok) return { ok: false, reason: imported.error || 'import failed' }
   setLastImportTimestamp(Date.now())
-  return { ok: true }
+  return { ok: true, colorsImported: imported.inserted?.colors ?? 0 }
 }
 
 /** Quick heuristic: DB considered empty if no tissues/colors/patterns */

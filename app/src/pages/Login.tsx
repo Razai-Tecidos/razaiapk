@@ -45,8 +45,7 @@ export default function Login() {
       })
       console.log('[login] Result:', error ? error.message : 'success', data)
       if (error) throw error
-      // Force page reload to ensure auth state is properly loaded
-      window.location.href = '/'
+      navigate('/', { replace: true })
     } catch (err: any) {
       console.error('[login] Error:', err)
       const msg = err?.message || 'Erro ao fazer login'

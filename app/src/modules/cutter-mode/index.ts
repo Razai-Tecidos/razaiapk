@@ -1,1 +1,2 @@
-export { CutterMode, default } from './CutterMode'
+export { CutterMode } from './CutterMode'
+export { default } from './CutterMode'

@@ -20,6 +20,7 @@
       "@/types/*": ["src/types/*"],
       "@/design-system/*": ["src/design-system/*"],
       "@/context/*": ["src/context/*"],
+      "@/modules/*": ["src/modules/*"],
       "@/version": ["src/version"]
     }
   },

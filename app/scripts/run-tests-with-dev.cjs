@@ -55,8 +55,11 @@ async function main() {
   }
 
   // run tests
+    const extraArgs = process.argv.slice(2)
   const testCmd = /^win/i.test(process.platform) ? 'cmd' : 'npx'
-  const testArgs = /^win/i.test(process.platform) ? ['/c','npx','vitest','run'] : ['vitest','run']
+    const testArgs = /^win/i.test(process.platform)
+      ? ['/c','npx','vitest','run', ...extraArgs]
+      : ['vitest','run', ...extraArgs]
   const testProc = spawn(testCmd, testArgs, { stdio: 'inherit' })
   testProc.on('exit', (code) => {
     // cleanup dev server if we started it

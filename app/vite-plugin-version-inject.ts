@@ -9,13 +9,20 @@ import type { Plugin } from 'vite'
 // Store the hash globally so all transforms use the same hash
 let globalBuildHash = ''
 let globalBuildTimestamp = ''
+let isDevServer = false
 
 export function vitePluginVersionInject(): Plugin {
   return {
     name: 'vite-plugin-version-inject',
     enforce: 'pre',
     
-    configResolved() {
+    configResolved(config) {
+      isDevServer = config.command === 'serve'
+      if (isDevServer) {
+        globalBuildHash = ''
+        globalBuildTimestamp = ''
+        return
+      }
       // Generate hash once at config time
       globalBuildHash = crypto
         .createHash('sha256')
@@ -33,6 +40,7 @@ export function vitePluginVersionInject(): Plugin {
     transformIndexHtml: {
       order: 'post', // Changed to 'post' so it runs AFTER Vite injects script tags
       handler(html) {
+        if (isDevServer) return html
         // Add script that sets window.__RAZAI_BUILD_HASH__ before any other script runs
         const hashScript = `<script>
 window.__RAZAI_BUILD_HASH__ = '${globalBuildHash}';
@@ -66,6 +74,7 @@ window.__RAZAI_BUILD_TIMESTAMP__ = '${globalBuildTimestamp}';
     // STRATEGY 1: HARDCODE hash directly into version-mgmt.ts
     // Most reliable for Tauri - hash is baked into the bundle, not runtime lookup
     transform(code, id) {
+      if (isDevServer) return
       if (!id.includes('version-mgmt.ts')) {
         return
       }

@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite'
-import type { Plugin, ViteDevServer } from 'vite'
+import type { Plugin, PluginOption, ViteDevServer } from 'vite'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -79,15 +79,14 @@ const devSyncPlugin: Plugin = {
   }
 }
 
-const plugins: Plugin[] = [
+const plugins: PluginOption[] = [
   react(),
   devSyncPlugin,
   vitePluginVersionInject()
 ]
 
 if (!isTauriBuild && !disablePwa) {
-  plugins.push(
-    VitePWA({
+  const pwaPlugin = VitePWA({
       registerType: 'autoUpdate',
       workbox: {
         // AGGRESSIVE CACHE INVALIDATION
@@ -147,7 +146,11 @@ if (!isTauriBuild && !disablePwa) {
         ]
       }
     })
-  )
+  if (Array.isArray(pwaPlugin)) {
+    plugins.push(...pwaPlugin)
+  } else {
+    plugins.push(pwaPlugin)
+  }
 } else {
   if (disablePwa) {
     console.log('[vite] PWA plugin disabled via DISABLE_PWA=1 environment override')

@@ -189,15 +189,15 @@ export default function ColorFamilies() {
                   <div style={{ display: 'grid', gap: DS.spacing(2) }}>
                     <StatRow 
                       label="Faixa de matiz"
-                      value={`${Math.round(family.hueMin)}° - ${Math.round(family.hueMax)}°`}
+                      value={formatHueRange(family.hueMin, family.hueMax)}
                     />
                     <StatRow 
                       label="Matiz médio"
-                      value={`${Math.round(family.hueAvg)}°`}
+                      value={formatHueValue(family.hueAvg)}
                     />
                     <StatRow 
                       label="Amplitude"
-                      value={`${Math.round(getHueSpan(family.hueMin, family.hueMax))}°`}
+                      value={formatHueSpan(family.hueMin, family.hueMax)}
                     />
                   </div>
                 </div>
@@ -312,11 +312,12 @@ function InfoRow({ title, description }: { title: string; description: string })
 }
 
 // Helper Functions
-function getRepresentativeColor(hueAvg: number, opacity: number = 1): string {
+function getRepresentativeColor(hueAvg: number | null | undefined, opacity: number = 1): string {
   // Convert hue to LAB with vibrant chroma and medium lightness
+  const safeHue = normalizeHue(hueAvg)
   const L = 60
   const chroma = 60
-  const hueRad = (hueAvg * Math.PI) / 180
+  const hueRad = (safeHue * Math.PI) / 180
   const a = chroma * Math.cos(hueRad)
   const b = chroma * Math.sin(hueRad)
   
@@ -333,10 +334,41 @@ function getRepresentativeColor(hueAvg: number, opacity: number = 1): string {
   return hex
 }
 
-function getHueSpan(min: number, max: number): number {
+function getHueSpan(min: number | null | undefined, max: number | null | undefined): number | null {
   // Handle wrap-around (e.g., 350° to 10°)
-  if (max < min) {
-    return (360 - min) + max
+  const safeMin = typeof min === 'number' ? normalizeHue(min) : null
+  const safeMax = typeof max === 'number' ? normalizeHue(max) : null
+  if (safeMin === null || safeMax === null) return null
+  if (safeMax < safeMin) {
+    return (360 - safeMin) + safeMax
   }
-  return max - min
+  return safeMax - safeMin
+}
+
+function normalizeHue(value: number | null | undefined, fallback = 0): number {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    const wrapped = value % 360
+    return wrapped < 0 ? wrapped + 360 : wrapped
+  }
+  return fallback
+}
+
+function formatHueValue(value: number | null | undefined): string {
+  const hue = normalizeHue(value, NaN)
+  return Number.isNaN(hue) ? '—' : `${Math.round(hue)}°`
+}
+
+function formatHueRange(min: number | null | undefined, max: number | null | undefined): string {
+  const hueMin = normalizeHue(min, NaN)
+  const hueMax = normalizeHue(max, NaN)
+  if (Number.isNaN(hueMin) || Number.isNaN(hueMax)) {
+    return '—'
+  }
+  return `${Math.round(hueMin)}° - ${Math.round(hueMax)}°`
+}
+
+function formatHueSpan(min: number | null | undefined, max: number | null | undefined): string {
+  const span = getHueSpan(min, max)
+  if (span === null) return '—'
+  return `${Math.round(span)}°`
 }
