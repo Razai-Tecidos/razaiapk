@@ -1,13 +1,19 @@
 import React from 'react'
 import { Outlet, Link, useLocation } from 'react-router-dom'
-import { Burger, Drawer, Stack, Group, Box } from '@mantine/core'
+import { Burger, Drawer, Stack, Group, Box, Button } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { DS } from '@/design-system/tokens'
 import { APP_VERSION } from './version'
+import { supabase } from '@/lib/supabase'
 
 function Header() {
   const { pathname } = useLocation()
   const [opened, { toggle, close }] = useDisclosure(false)
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    window.location.href = '/login'
+  }
 
   const links = [
     { to: '/', label: 'Início' },
@@ -91,6 +97,15 @@ function Header() {
           {links.map((link) => (
             <LinkItem key={link.to} {...link} />
           ))}
+          <Button 
+            variant="subtle" 
+            size="xs" 
+            color="gray" 
+            onClick={handleLogout}
+            style={{ marginLeft: DS.spacing(2) }}
+          >
+            Sair
+          </Button>
         </nav>
       </Box>
 
@@ -113,6 +128,16 @@ function Header() {
           {links.map((link) => (
             <LinkItem key={link.to} {...link} mobile />
           ))}
+          <Button 
+            variant="subtle" 
+            size="sm" 
+            color="red" 
+            onClick={handleLogout}
+            fullWidth
+            style={{ marginTop: DS.spacing(4) }}
+          >
+            Sair
+          </Button>
         </Stack>
       </Drawer>
     </header>

@@ -7,7 +7,7 @@ import { DS } from '@/design-system/tokens'
 export default function Login() {
   const navigate = useNavigate()
   const location = useLocation()
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [pass, setPass] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -18,9 +18,29 @@ export default function Login() {
     setError('')
     
     try {
-      console.log('[login] Attempting login with:', email)
+      let emailToUse = username
+      
+      // Se não parece um email, buscar o email pelo username
+      if (!username.includes('@')) {
+        console.log('[login] Looking up username:', username)
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('username', username.toLowerCase())
+          .single()
+        
+        if (profileError || !profile) {
+          throw new Error('Usuário não encontrado')
+        }
+        
+        // Buscar o email do usuário na auth.users via função RPC ou usar email fictício
+        // Como o Supabase não expõe auth.users diretamente, usamos o padrão: username@razai.local
+        emailToUse = `${username.toLowerCase()}@razai.local`
+      }
+      
+      console.log('[login] Attempting login with:', emailToUse)
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: emailToUse,
         password: pass,
       })
       console.log('[login] Result:', error ? error.message : 'success', data)
@@ -32,10 +52,10 @@ export default function Login() {
       const msg = err?.message || 'Erro ao fazer login'
       // Traduzir mensagens comuns do Supabase
       if (msg.includes('Invalid login credentials')) {
-        setError('Email ou senha incorretos')
+        setError('Usuário ou senha incorretos')
       } else if (msg.includes('Email not confirmed')) {
         setError('Email não confirmado. Verifique sua caixa de entrada.')
-      } else if (msg.includes('User not found')) {
+      } else if (msg.includes('User not found') || msg.includes('Usuário não encontrado')) {
         setError('Usuário não encontrado')
       } else {
         setError(msg)
@@ -70,11 +90,13 @@ export default function Login() {
             )}
             
             <TextInput 
-              label="Email" 
-              placeholder="seu@email.com" 
+              label="Usuário" 
+              placeholder="seu nome de usuário" 
               required 
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              autoCapitalize="none"
+              autoCorrect="off"
             />
             <PasswordInput 
               label="Senha" 

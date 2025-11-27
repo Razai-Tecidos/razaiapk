@@ -1,11 +1,14 @@
 import React from 'react'
 import { Outlet, Link } from 'react-router-dom'
 import { DS } from '@/design-system/tokens'
-import { useAuth } from '@/context/AuthContext'
 import { Button, Container, Group, Text } from '@mantine/core'
+import { supabase } from '@/lib/supabase'
 
 export default function CollaboratorLayout() {
-  const { signOut, user } = useAuth()
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    window.location.href = '/login'
+  }
 
   return (
     <div style={{ 
@@ -30,7 +33,7 @@ export default function CollaboratorLayout() {
         <div style={{ fontWeight: DS.font.weightBold, fontSize: DS.font.size.lg }}>
           Razai Mobile
         </div>
-        <Button variant="subtle" size="xs" onClick={() => signOut()} color="gray">
+        <Button variant="subtle" size="xs" onClick={handleLogout} color="gray">
           Sair
         </Button>
       </header>

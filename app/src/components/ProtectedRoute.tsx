@@ -11,31 +11,86 @@ interface ProtectedRouteProps {
 export default function ProtectedRoute({ allowedRoles, redirectPath = '/login' }: ProtectedRouteProps) {
   const location = useLocation()
   const [user, setUser] = useState<User | null>(null)
+  const [role, setRole] = useState<'admin' | 'collaborator'>('admin')
   const [loading, setLoading] = useState(true)
-  const [checked, setChecked] = useState(false)
 
   useEffect(() => {
-    // Check session directly from Supabase
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('[ProtectedRoute] Direct session check:', session ? 'has session' : 'no session')
-      setUser(session?.user ?? null)
-      setLoading(false)
-      setChecked(true)
-    })
+    let mounted = true
+    
+    const loadUserAndRole = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        console.log('[ProtectedRoute] Session check:', session ? 'has session' : 'no session')
+        
+        if (!mounted) return
+        
+        if (!session?.user) {
+          setUser(null)
+          setLoading(false)
+          return
+        }
+        
+        setUser(session.user)
+        
+        // Fetch role from profiles table
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single()
+        
+        if (!mounted) return
+        
+        if (error) {
+          console.log('[ProtectedRoute] Profile fetch error:', error.message)
+        }
+        
+        const userRole = (profile?.role as 'admin' | 'collaborator') || 'admin'
+        console.log('[ProtectedRoute] User role:', userRole)
+        setRole(userRole)
+        setLoading(false)
+      } catch (err) {
+        console.error('[ProtectedRoute] Error:', err)
+        if (mounted) setLoading(false)
+      }
+    }
+    
+    loadUserAndRole()
 
-    // Listen for changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    // Listen for changes - but don't set loading again
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       console.log('[ProtectedRoute] Auth changed:', _event)
-      setUser(session?.user ?? null)
-      setLoading(false)
+      
+      if (!session?.user) {
+        setUser(null)
+        setRole('admin')
+        return
+      }
+      
+      setUser(session.user)
+      
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single()
+        
+        setRole((profile?.role as 'admin' | 'collaborator') || 'admin')
+      } catch (err) {
+        console.error('[ProtectedRoute] Role fetch error:', err)
+      }
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
   }, [])
 
-  console.log('[ProtectedRoute] State:', { user: !!user, loading, checked, path: location.pathname })
+  console.log('[ProtectedRoute] State:', { user: !!user, role, loading, path: location.pathname })
 
-  if (loading && !user) {
+  if (loading) {
     return <div style={{ display: 'flex', justifyContent: 'center', padding: 50 }}>Carregando...</div>
   }
 
@@ -44,12 +99,11 @@ export default function ProtectedRoute({ allowedRoles, redirectPath = '/login' }
     return <Navigate to={redirectPath} state={{ from: location }} replace />
   }
 
-  // Role check - default to admin if no role in metadata
+  // Role check
   if (allowedRoles && allowedRoles.length > 0) {
-    const userRole = (user.user_metadata?.role as 'admin' | 'collaborator') || 'admin'
-    if (!allowedRoles.includes(userRole)) {
-      console.log('[ProtectedRoute] Role not allowed:', userRole)
-      if (userRole === 'collaborator') return <Navigate to="/mobile" replace />
+    if (!allowedRoles.includes(role)) {
+      console.log('[ProtectedRoute] Role not allowed:', role, 'allowed:', allowedRoles)
+      if (role === 'collaborator') return <Navigate to="/mobile" replace />
       return <Navigate to="/" replace />
     }
   }

@@ -57,6 +57,8 @@ const Exportacoes = React.lazy(() => import('./pages/Exportacoes'))
 const TecidoEstampaPage = React.lazy(() => import('./pages/TecidoEstampa'))
 const RecolorPreviewPage = React.lazy(() => import('./pages/RecolorPreview'))
 const MigrationPage = React.lazy(() => import('./pages/Migration'))
+const CutterModePage = React.lazy(() => import('./pages/CutterMode'))
+const MobileStockPage = React.lazy(() => import('./pages/MobileStock'))
 
 import { importFullBackup } from '@/lib/import'
 import { buildFullBackupJson } from '@/lib/backup'
@@ -78,7 +80,7 @@ function AppRouter() {
       
       <Route path="/mobile" element={<ProtectedRoute allowedRoles={['collaborator', 'admin']} />}>
         <Route element={<CollaboratorLayout />}>
-          <Route index element={<React.Suspense fallback={<div>Carregando...</div>}><StockPage /></React.Suspense>} />
+          <Route index element={<React.Suspense fallback={<div>Carregando...</div>}><MobileStockPage /></React.Suspense>} />
         </Route>
       </Route>
       
