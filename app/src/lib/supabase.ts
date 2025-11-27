@@ -7,6 +7,13 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.error('Missing Supabase environment variables. URL:', supabaseUrl, 'Key length:', supabaseAnonKey?.length)
 }
 
+/**
+ * Check if Supabase is properly configured
+ */
+export function isSupabaseConfigured(): boolean {
+  return !!(supabaseUrl && supabaseAnonKey && supabaseUrl !== 'https://placeholder.supabase.co')
+}
+
 // Prevent crash if keys are missing
 export const supabase = createClient(
   supabaseUrl || 'https://placeholder.supabase.co', 

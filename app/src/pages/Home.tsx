@@ -6,8 +6,9 @@ import { db, colorsDb, patternsDb } from '@/lib/db'
 import { importFullBackup } from '@/lib/import'
 import { notifications } from '@mantine/notifications'
 import { getLastUploadRecord } from '@/lib/cloud-sync'
-import { supabase } from '@/lib/supabase'
-import { registerStockMovement, getStockLevel } from '@/lib/stock-api'
+import { CutterMode } from '@/modules/cutter-mode'
+import { StatCard } from '@/components/StatCard'
+import { ActivityCard } from '@/components/ActivityCard'
 
 type ModalType = 'tissue' | 'color' | 'pattern' | 'import' | null
 
@@ -38,290 +39,6 @@ export default function Home() {
 
   // Cutter Mode
   const [cutterModalOpen, setCutterModalOpen] = useState(false)
-  const [cutterSearch, setCutterSearch] = useState('')
-  const [cutterResults, setCutterResults] = useState<any[]>([])
-  const [loadingCutter, setLoadingCutter] = useState(false)
-
-  async function searchCutterLinks(term: string) {
-    if (!term) {
-      setCutterResults([])
-      return
-    }
-    setLoadingCutter(true)
-    try {
-      const { data, error } = await supabase
-        .from('links')
-        .select('*, tissue:tissues(name), color:colors(name)')
-        .ilike('sku_filho', `%${term}%`)
-        .limit(10)
-      
-      if (error) throw error
-      setCutterResults(data || [])
-    } catch (e) {
-      console.error(e)
-      notifications.show({ title: 'Erro', message: 'Erro ao buscar tecidos', color: 'red' })
-    } finally {
-      setLoadingCutter(false)
-    }
-  }
-
-  async function handleStockAction(item: any, action: 'ZERO' | 'QTY', quantity: number = 0) {
-    const itemName = `${item.tissue?.name} ${item.color?.name}`
-    
-    if (action === 'ZERO') {
-      if (!confirm(`CONFIRMAR: O tecido ${itemName} ACABOU (0 estoque)?`)) return
-      
-      try {
-        const current = await getStockLevel(item.id)
-        if (current && current > 0) {
-          await registerStockMovement(item.id, 'OUT', current)
-        } else {
-          await registerStockMovement(item.id, 'ADJUST', 0)
-        }
-        notifications.show({ 
-          title: 'ZERADO!', 
-          message: `Estoque de ${item.sku_filho} definido como 0.`, 
-          color: 'red',
-          autoClose: 5000,
-          styles: (theme) => ({
-            root: { padding: '20px' },
-            title: { fontSize: '1.2rem', fontWeight: 700 },
-            description: { fontSize: '1rem' }
-          })
-        })
-      } catch (e) {
-        notifications.show({ title: 'Erro', message: 'Falha ao atualizar', color: 'red' })
-      }
-    } else {
-      // QTY
-      if (!confirm(`Confirmar saída de ${quantity} rolo(s)?`)) return
-      
-      try {
-        await registerStockMovement(item.id, 'OUT', quantity)
-        notifications.show({ 
-          title: 'Registrado', 
-          message: `Saída de ${quantity} rolo(s) registrada.`, 
-          color: 'green',
-          autoClose: 5000,
-          styles: (theme) => ({
-            root: { padding: '20px' },
-            title: { fontSize: '1.2rem', fontWeight: 700 },
-            description: { fontSize: '1rem' }
-          })
-        })
-      } catch (e) {
-        notifications.show({ title: 'Erro', message: 'Falha ao atualizar', color: 'red' })
-      }
-    }
-
-    setCutterSearch('')
-    setCutterResults([])
-  }
-
-  function CutterResultRow({ item, onAction }: { item: any, onAction: (item: any, type: 'ZERO' | 'QTY', qty: number) => void }) {
-    const [quantity, setQuantity] = useState(1)
-  
-    return (
-      <div style={{
-        background: DS.color.surface,
-        padding: DS.spacing(8),
-        borderRadius: DS.radius.xl,
-        border: `1px solid ${DS.color.border}`,
-        boxShadow: DS.shadow.sm,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: DS.spacing(8)
-      }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: '3rem', fontWeight: DS.font.weightBold, color: DS.color.textPrimary, marginBottom: DS.spacing(2), lineHeight: 1 }}>
-            {item.sku_filho}
-          </div>
-          <div style={{ fontSize: '1.5rem', color: DS.color.textSecondary }}>
-            {item.tissue?.name} <span style={{ color: DS.color.textMuted }}>•</span> {item.color?.name}
-          </div>
-        </div>
-  
-        <div style={{ display: 'flex', flexDirection: 'column', gap: DS.spacing(4), alignItems: 'flex-end' }}>
-          
-          {/* Counter Section */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: DS.spacing(4) }}>
-              <span style={{ fontSize: '1.2rem', color: DS.color.textSecondary }}>Quantos acabaram?</span>
-              <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  background: DS.color.surfaceAlt, 
-                  borderRadius: DS.radius.lg,
-                  border: `1px solid ${DS.color.border}`,
-                  padding: DS.spacing(1)
-              }}>
-                  <button 
-                      onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                      style={{
-                          width: 48, height: 48,
-                          borderRadius: DS.radius.md,
-                          border: 'none',
-                          background: '#fff',
-                          boxShadow: DS.shadow.xs,
-                          fontSize: 24,
-                          cursor: 'pointer',
-                          color: DS.color.textPrimary
-                      }}
-                  >-</button>
-                  <div style={{ width: 60, textAlign: 'center', fontSize: 24, fontWeight: 'bold' }}>{quantity}</div>
-                  <button 
-                      onClick={() => setQuantity(q => q + 1)}
-                      style={{
-                          width: 48, height: 48,
-                          borderRadius: DS.radius.md,
-                          border: 'none',
-                          background: '#fff',
-                          boxShadow: DS.shadow.xs,
-                          fontSize: 24,
-                          cursor: 'pointer',
-                          color: DS.color.textPrimary
-                      }}
-                  >+</button>
-              </div>
-          </div>
-  
-          {/* Actions */}
-          <div style={{ display: 'flex', gap: DS.spacing(3) }}>
-              <button
-                  onClick={() => onAction(item, 'QTY', quantity)}
-                  style={{
-                      background: DS.color.accent,
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: DS.radius.lg,
-                      padding: `${DS.spacing(3)} ${DS.spacing(6)}`,
-                      fontSize: '1.2rem',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      transition: 'opacity 0.2s'
-                  }}
-              >
-                  Confirmar Saída ({quantity})
-              </button>
-              
-              <button
-                  onClick={() => onAction(item, 'ZERO')}
-                  style={{
-                      background: '#FEF2F2',
-                      color: '#DC2626',
-                      border: '1px solid #FECACA',
-                      borderRadius: DS.radius.lg,
-                      padding: `${DS.spacing(3)} ${DS.spacing(6)}`,
-                      fontSize: '1.2rem',
-                      fontWeight: 600,
-                      cursor: 'pointer'
-                  }}
-              >
-                  ACABOU TUDO (0)
-              </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  if (cutterModalOpen) {
-    return (
-      <div style={{
-        position: 'fixed',
-        top: 0, left: 0, right: 0, bottom: 0,
-        background: '#F9FAFB',
-        zIndex: 9999,
-        overflowY: 'auto',
-        padding: '2rem'
-      }}>
-        <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-          {/* Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4rem' }}>
-            <button 
-              onClick={() => setCutterModalOpen(false)}
-              style={{ 
-                background: 'transparent', 
-                border: 'none', 
-                fontSize: '1.5rem', 
-                cursor: 'pointer', 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: '0.5rem',
-                color: '#6B7280',
-                fontWeight: 500
-              }}
-            >
-              ← Voltar
-            </button>
-            <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#EF4444', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Modo Cortador
-            </div>
-          </div>
-
-          {/* Main Content */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', alignItems: 'center' }}>
-            <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
-              <h1 style={{ fontSize: '3.5rem', fontWeight: 300, color: '#111827', margin: '0 0 1rem 0', lineHeight: 1.1 }}>
-                Qual tecido acabou?
-              </h1>
-              <p style={{ fontSize: '1.5rem', color: '#6B7280', margin: 0 }}>
-                Digite o código ou nome do tecido abaixo.
-              </p>
-            </div>
-
-            <input
-              autoFocus
-              value={cutterSearch}
-              onChange={(e) => {
-                setCutterSearch(e.target.value)
-                searchCutterLinks(e.target.value)
-              }}
-              placeholder="Digite aqui..."
-              style={{
-                width: '100%',
-                height: '100px',
-                fontSize: '3rem',
-                textAlign: 'center',
-                borderRadius: '1rem',
-                border: '2px solid #E5E7EB',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                outline: 'none',
-                transition: 'all 0.2s',
-                background: '#fff'
-              }}
-              onFocus={(e) => {
-                e.target.style.borderColor = '#3B82F6'
-                e.target.style.boxShadow = '0 0 0 4px rgba(59, 130, 246, 0.2)'
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = '#E5E7EB'
-                e.target.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-              }}
-            />
-
-            {/* Results */}
-            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '2rem' }}>
-              {loadingCutter && (
-                <div style={{ textAlign: 'center', fontSize: '1.5rem', color: '#9CA3AF' }}>Procurando...</div>
-              )}
-              
-              {cutterResults.map(item => (
-                <CutterResultRow key={item.id} item={item} onAction={handleStockAction} />
-              ))}
-
-              {cutterSearch && !loadingCutter && cutterResults.length === 0 && (
-                <div style={{ textAlign: 'center', padding: '4rem', background: '#fff', borderRadius: '1rem', border: '1px dashed #E5E7EB' }}>
-                  <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🔍</div>
-                  <div style={{ fontSize: '1.5rem', color: '#6B7280' }}>Não encontramos nenhum tecido com esse código.</div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
 
   useEffect(() => {
     loadStats()
@@ -472,57 +189,9 @@ export default function Home() {
 
       {/* Stats - responsivo */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: DS.spacing(6), marginTop: DS.spacing(12), marginBottom: DS.spacing(12) }}>
-        <div style={{
-          padding: DS.spacing(6),
-          background: DS.color.surface,
-          border: `1px solid ${DS.color.border}`,
-          borderRadius: DS.radius.lg,
-          boxShadow: DS.shadow.sm,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: DS.spacing(2)
-        }}>
-          <Text size="xl" weight={DS.font.weightLight} style={{ color: DS.color.textPrimary, lineHeight: 1, fontSize: DS.font.size.display }}>
-            {stats.tissues}
-          </Text>
-          <Text size="sm" weight={DS.font.weightMedium} style={{ color: DS.color.textSecondary, textTransform: 'uppercase', letterSpacing: DS.font.letterSpacing.wide }}>Tecidos</Text>
-        </div>
-        <div style={{
-          padding: DS.spacing(6),
-          background: DS.color.surface,
-          border: `1px solid ${DS.color.border}`,
-          borderRadius: DS.radius.lg,
-          boxShadow: DS.shadow.sm,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: DS.spacing(2)
-        }}>
-          <Text size="xl" weight={DS.font.weightLight} style={{ color: DS.color.textPrimary, lineHeight: 1, fontSize: DS.font.size.display }}>
-            {stats.colors}
-          </Text>
-          <Text size="sm" weight={DS.font.weightMedium} style={{ color: DS.color.textSecondary, textTransform: 'uppercase', letterSpacing: DS.font.letterSpacing.wide }}>Cores</Text>
-        </div>
-        <div style={{
-          padding: DS.spacing(6),
-          background: DS.color.surface,
-          border: `1px solid ${DS.color.border}`,
-          borderRadius: DS.radius.lg,
-          boxShadow: DS.shadow.sm,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: DS.spacing(2)
-        }}>
-          <Text size="xl" weight={DS.font.weightLight} style={{ color: DS.color.textPrimary, lineHeight: 1, fontSize: DS.font.size.display }}>
-            {stats.patterns}
-          </Text>
-          <Text size="sm" weight={DS.font.weightMedium} style={{ color: DS.color.textSecondary, textTransform: 'uppercase', letterSpacing: DS.font.letterSpacing.wide }}>Estampas</Text>
-        </div>
+        <StatCard value={stats.tissues} label="Tecidos" />
+        <StatCard value={stats.colors} label="Cores" />
+        <StatCard value={stats.patterns} label="Estampas" />
       </div>
       
       <section style={{ marginBottom: DS.spacing(12) }}>
@@ -586,61 +255,20 @@ export default function Home() {
         ) : (
           <div style={{ display: 'grid', gap: DS.spacing(3) }}>
             {recentActivity.map((item) => (
-              <div key={`${item.type}-${item.id}`} style={{
-                display: 'flex',
-                alignItems: 'center',
-                padding: `${DS.spacing(3)} ${DS.spacing(4)}`,
-                background: DS.color.surface,
-                borderRadius: DS.radius.md,
-                border: `1px solid ${DS.color.borderSubtle}`,
-                boxShadow: DS.shadow.xs,
-                transition: 'transform 0.2s ease',
-                cursor: 'default'
-              }}>
-                <div style={{ 
-                  width: 40, 
-                  height: 40, 
-                  borderRadius: DS.radius.pill, 
-                  background: DS.color.surfaceAlt, 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  fontSize: 20, 
-                  marginRight: DS.spacing(4),
-                  border: `1px solid ${DS.color.borderSubtle}`
-                }}>
-                  {item.type === 'tissue' ? '🧵' : item.type === 'color' ? '🎨' : '✨'}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: DS.spacing(3), marginBottom: 2 }}>
-                    <Text weight={DS.font.weightMedium} style={{ color: DS.color.textPrimary, fontSize: DS.font.size.base }}>
-                      {item.name}
-                    </Text>
-                    <span style={{
-                      fontSize: 10,
-                      padding: '2px 8px',
-                      borderRadius: 10,
-                      background: item.type === 'tissue' ? '#e0f2fe' : item.type === 'color' ? '#fce7f3' : '#fef3c7',
-                      color: item.type === 'tissue' ? '#0369a1' : item.type === 'color' ? '#be185d' : '#b45309',
-                      fontWeight: 600,
-                      textTransform: 'uppercase',
-                      letterSpacing: 0.5
-                    }}>
-                      {item.type === 'tissue' ? 'Tecido' : item.type === 'color' ? 'Cor' : 'Estampa'}
-                    </span>
-                  </div>
-                  <Text size="xs" style={{ color: DS.color.textSecondary }}>
-                    {item.detail}
-                  </Text>
-                </div>
-                <Text size="xs" style={{ color: DS.color.textMuted, fontVariantNumeric: 'tabular-nums' }}>
-                  {item.date.toLocaleDateString()} <span style={{ opacity: 0.5 }}>•</span> {item.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </Text>
-              </div>
+              <ActivityCard
+                key={`${item.type}-${item.id}`}
+                type={item.type}
+                name={item.name}
+                detail={item.detail}
+                date={item.date}
+              />
             ))}
           </div>
         )}
       </section>
+
+      {/* Cutter Mode Modal */}
+      <CutterMode isOpen={cutterModalOpen} onClose={() => setCutterModalOpen(false)} />
 
       {/* Modals */}
       <Modal isOpen={activeModal === 'tissue'} onClose={() => setActiveModal(null)} title="Novo Tecido" size="sm">
