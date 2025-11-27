@@ -1,8 +1,0 @@
-Razai Tools Release v0.1.4
-
-Artifacts:
-  - Razai Tools_0.1.4_x64-setup.exe  SHA256=d3d7443f73394a7168fee67fe2c260ae263d8e7237ef0506228c7a787b22099c
-  - Razai Tools_0.1.4_x64_en-US.msi  SHA256=2a1e50ff9fd2c7b77facca66d9226c8f32a04283b4b930dae8e89ec967128532
-  - razai-tools-portable-v0.1.4.zip  SHA256=ff06ddafcc2c44f54f4cdbeed62a8ac56dc1f20615838835a024108e96d0f32f
-
-Build time: 2025-11-25T17:18:53.322Z
