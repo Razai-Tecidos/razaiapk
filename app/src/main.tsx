@@ -1,6 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { createBrowserRouter, RouterProvider } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom'
 import { MantineProvider } from '@mantine/core'
 import { Global } from '@emotion/react'
 import { Notifications } from '@mantine/notifications'
@@ -46,7 +46,7 @@ if (typeof Node === 'function' && Node.prototype) {
   }
 }
 
-// Lazy pages (rare / heavier): Patterns, Settings, Catalog, Exportacoes, ColorFamilies, RecolorPreview, vínculos
+// Lazy pages (rare / heavier)
 const Patterns = React.lazy(() => import('./pages/Patterns'))
 const Settings = React.lazy(() => import('./pages/Settings'))
 const ColorFamilies = React.lazy(() => import('./pages/ColorFamilies'))
@@ -64,68 +64,46 @@ import { bootstrapCloudImport, autoImportIfNeeded, ensureDefaultCloudConfig } fr
 import AppErrorBoundary from '@/components/AppErrorBoundary'
 import { isTauri, openExternal } from '@/lib/platform'
 
-const router = createBrowserRouter([
-  {
-    path: '/login',
-    element: <Login />
-  },
-  {
-    path: '/vitrine',
-    element: <PublicLayout />,
-    children: [
-      { index: true, element: <ShowcaseHome /> },
-      { path: 'tecido/:id', element: <ShowcaseTissueDetails /> },
-      { path: 'link/:id', element: <ShowcaseLinkDetails /> }
-    ]
-  },
-  {
-    path: '/mobile',
-    element: <ProtectedRoute allowedRoles={['collaborator', 'admin']} />,
-    children: [
-      {
-        element: <CollaboratorLayout />,
-        children: [
-          { index: true, element: <StockPage /> },
-          // Add other mobile-friendly routes here if needed
-        ]
-      }
-    ]
-  },
-  {
-    path: '/',
-    element: <ProtectedRoute allowedRoles={['admin', 'collaborator']} />,
-    children: [
-      {
-        element: <App />,
-        children: [
-          // Admin Routes
-          { 
-            element: <ProtectedRoute allowedRoles={['admin']} />, 
-            children: [
-              { index: true, element: <Home /> },
-              { path: 'tecidos', element: <Tissues /> },
-              { path: 'cores', element: <Colors /> },
-              { path: 'estampas', element: <Patterns /> },
-              { path: 'tecido-cor', element: <TecidoCorPage /> },
-              { path: 'tecido-estampa', element: <TecidoEstampaPage /> },
-              { path: 'catalogo', element: <CatalogPage /> },
-              { path: 'exportacoes', element: <Exportacoes /> },
-              { path: 'configuracoes', element: <Settings /> },
-              { path: 'familias', element: <ColorFamilies /> },
-              { path: 'recolor', element: <RecolorPreviewPage /> },
-              { path: 'migration', element: <MigrationPage /> }
-            ]
-          },
-          // Shared/Collaborator Routes
-          {
-            path: 'estoque',
-            element: <StockPage /> // Accessible by both if they pass the parent check
-          }
-        ]
-      }
-    ]
-  }
-])
+// App Router Component - created inside React tree so it has access to AuthContext
+function AppRouter() {
+  return (
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      
+      <Route path="/vitrine" element={<PublicLayout />}>
+        <Route index element={<ShowcaseHome />} />
+        <Route path="tecido/:id" element={<ShowcaseTissueDetails />} />
+        <Route path="link/:id" element={<ShowcaseLinkDetails />} />
+      </Route>
+      
+      <Route path="/mobile" element={<ProtectedRoute allowedRoles={['collaborator', 'admin']} />}>
+        <Route element={<CollaboratorLayout />}>
+          <Route index element={<React.Suspense fallback={<div>Carregando...</div>}><StockPage /></React.Suspense>} />
+        </Route>
+      </Route>
+      
+      <Route path="/" element={<ProtectedRoute allowedRoles={['admin', 'collaborator']} />}>
+        <Route element={<App />}>
+          <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+            <Route index element={<Home />} />
+            <Route path="tecidos" element={<Tissues />} />
+            <Route path="cores" element={<Colors />} />
+            <Route path="estampas" element={<React.Suspense fallback={<div>Carregando...</div>}><Patterns /></React.Suspense>} />
+            <Route path="tecido-cor" element={<React.Suspense fallback={<div>Carregando...</div>}><TecidoCorPage /></React.Suspense>} />
+            <Route path="tecido-estampa" element={<React.Suspense fallback={<div>Carregando...</div>}><TecidoEstampaPage /></React.Suspense>} />
+            <Route path="catalogo" element={<React.Suspense fallback={<div>Carregando...</div>}><CatalogPage /></React.Suspense>} />
+            <Route path="exportacoes" element={<React.Suspense fallback={<div>Carregando...</div>}><Exportacoes /></React.Suspense>} />
+            <Route path="configuracoes" element={<React.Suspense fallback={<div>Carregando...</div>}><Settings /></React.Suspense>} />
+            <Route path="familias" element={<React.Suspense fallback={<div>Carregando...</div>}><ColorFamilies /></React.Suspense>} />
+            <Route path="recolor" element={<React.Suspense fallback={<div>Carregando...</div>}><RecolorPreviewPage /></React.Suspense>} />
+            <Route path="migration" element={<React.Suspense fallback={<div>Carregando...</div>}><MigrationPage /></React.Suspense>} />
+          </Route>
+          <Route path="estoque" element={<React.Suspense fallback={<div>Carregando...</div>}><StockPage /></React.Suspense>} />
+        </Route>
+      </Route>
+    </Routes>
+  )
+}
 
 const isRunningInTauri = isTauri()
 
@@ -307,7 +285,8 @@ console.log('[startup] Initializing aggressive version management...')
   
   // Continue with rest of startup (must be inside IIFE to run after await)
   setupServiceWorkerUpdateListener()
-  setTimeout(ensureDesignSystemApplied, 800)
+  // DISABLED: This was causing reload loops in dev
+  // setTimeout(ensureDesignSystemApplied, 800)
 })()
 
 // Move these outside the IIFE but keep them defined here
@@ -354,8 +333,8 @@ if (import.meta.env.DEV && 'serviceWorker' in navigator) {
     if (regs.length > 0) {
       console.log('[dev] Unregistering service workers for development environment...')
       regs.forEach(r => r.unregister())
-      // Force reload if we found SWs, to ensure clean state
-      window.location.reload()
+      // DISABLED: Don't reload - just unregister and continue
+      // window.location.reload()
     }
   })
 }
@@ -399,11 +378,11 @@ const renderApp = () => {
         })} />
         <Notifications position="top-right" />
         <AppErrorBoundary>
-          <React.Suspense fallback={<div style={{ padding: 32 }}>Carregando módulo…</div>}>
+          <BrowserRouter>
             <AuthProvider>
-              <RouterProvider router={router} />
+              <AppRouter />
             </AuthProvider>
-          </React.Suspense>
+          </BrowserRouter>
         </AppErrorBoundary>
       </MantineProvider>
     </React.StrictMode>

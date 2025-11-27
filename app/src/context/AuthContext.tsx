@@ -28,26 +28,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [role, setRole] = useState<UserRole>(null)
   const [loading, setLoading] = useState(true)
 
+  console.log('[AuthProvider] Render - loading:', loading, 'user:', !!user)
+
   useEffect(() => {
-    // Check active session
+    let isMounted = true
+    
+    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!isMounted) return
+      console.log('[auth] Initial session:', session ? 'logged in' : 'no session')
       setSession(session)
       setUser(session?.user ?? null)
-      setRole((session?.user?.user_metadata?.role as UserRole) || 'collaborator') // Default to collaborator if undefined
+      setRole((session?.user?.user_metadata?.role as UserRole) || 'admin')
+      console.log('[auth] Setting loading to false')
       setLoading(false)
     })
 
-    // Listen for changes
+    // Listen for auth changes (login, logout, token refresh)
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return
+      console.log('[auth] Auth state changed:', _event, session ? 'has session' : 'no session')
       setSession(session)
       setUser(session?.user ?? null)
-      setRole((session?.user?.user_metadata?.role as UserRole) || 'collaborator')
+      setRole((session?.user?.user_metadata?.role as UserRole) || 'admin')
       setLoading(false)
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      isMounted = false
+      subscription.unsubscribe()
+    }
   }, [])
 
   const signIn = async (email: string, pass: string) => {

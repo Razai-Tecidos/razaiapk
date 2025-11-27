@@ -1,20 +1,16 @@
 import React, { useState } from 'react'
 import { TextInput, PasswordInput, Button, Paper, Title, Container, Text, Alert } from '@mantine/core'
-import { useAuth } from '@/context/AuthContext'
+import { supabase } from '@/lib/supabase'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { DS } from '@/design-system/tokens'
 
 export default function Login() {
-  const { signIn } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const [email, setEmail] = useState('')
   const [pass, setPass] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-
-  // Redirect logic will be handled by the ProtectedRoute or useEffect in main, 
-  // but we can also force it here after success.
   
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -22,12 +18,28 @@ export default function Login() {
     setError('')
     
     try {
-      const { error } = await signIn(email, pass)
+      console.log('[login] Attempting login with:', email)
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password: pass,
+      })
+      console.log('[login] Result:', error ? error.message : 'success', data)
       if (error) throw error
-      // Navigation happens automatically via AuthStateChange or we can push
-      // navigate('/') 
+      // Force page reload to ensure auth state is properly loaded
+      window.location.href = '/'
     } catch (err: any) {
-      setError(err.message || 'Erro ao fazer login')
+      console.error('[login] Error:', err)
+      const msg = err?.message || 'Erro ao fazer login'
+      // Traduzir mensagens comuns do Supabase
+      if (msg.includes('Invalid login credentials')) {
+        setError('Email ou senha incorretos')
+      } else if (msg.includes('Email not confirmed')) {
+        setError('Email não confirmado. Verifique sua caixa de entrada.')
+      } else if (msg.includes('User not found')) {
+        setError('Usuário não encontrado')
+      } else {
+        setError(msg)
+      }
     } finally {
       setLoading(false)
     }

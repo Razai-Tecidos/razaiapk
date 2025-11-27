@@ -55,6 +55,11 @@ export function storeCurrentFrontendHash(hash: string) {
  * Check if frontend is outdated (stored hash != current hash)
  */
 export function isFrontendOutdated(): boolean {
+  // DISABLED IN DEV MODE - this was causing issues
+  if (import.meta.env.DEV) {
+    return false
+  }
+
   const current = getCurrentFrontendHash()
   const stored = getStoredFrontendHash()
 
