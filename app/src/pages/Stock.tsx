@@ -125,23 +125,25 @@ export default function StockPage() {
         subtitle="Gerencie a entrada e saída de rolos e acompanhe a previsão de ruptura."
       >
         <Panel>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
             <Input 
               placeholder="Filtrar por nome ou SKU..." 
               value={filter} 
               onChange={e => setFilter(e.target.value)} 
-              style={{ width: 300 }}
+              style={{ width: '100%', maxWidth: 300, minWidth: 200 }}
             />
-            <DSButton tone="accent" onClick={() => {
-              setSelectedItem(null)
-              setActionType('IN')
-              setIsModalOpen(true)
-            }}>
-              + Nova Movimentação
-            </DSButton>
-            <DSButton variant="ghost" onClick={loadData} title="Atualizar dados">
-              ↻
-            </DSButton>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <DSButton tone="accent" onClick={() => {
+                setSelectedItem(null)
+                setActionType('IN')
+                setIsModalOpen(true)
+              }}>
+                + Nova Movimentação
+              </DSButton>
+              <DSButton variant="ghost" onClick={loadData} title="Atualizar dados">
+                ↻
+              </DSButton>
+            </div>
           </div>
 
           {loading ? (

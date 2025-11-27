@@ -242,23 +242,26 @@ export default function Tissues() {
   return (
     <Container padY={12}>
     <section style={{display:'grid', gap: DS.spacing(6)}}>
-      {/* Seção superior */}
-      <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', height: 40}}>
-        <h1 style={{color: DS.color.textPrimary, margin: 0, fontSize: DS.font.size.display, fontWeight: DS.font.weightLight, letterSpacing: DS.font.letterSpacing.tight}}>{label.title}</h1>
-        <div style={{display:'flex', gap: DS.spacing(3), alignItems:'center'}}>
-          <div style={{position:'relative'}}>
+      {/* Seção superior - responsiva */}
+      <div style={{display:'flex', flexDirection:'column', gap: DS.spacing(4)}}>
+        <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap: DS.spacing(3)}}>
+          <h1 style={{color: DS.color.textPrimary, margin: 0, fontSize: DS.font.size.display, fontWeight: DS.font.weightLight, letterSpacing: DS.font.letterSpacing.tight}}>{label.title}</h1>
+        </div>
+        <div style={{display:'flex', gap: DS.spacing(3), alignItems:'center', flexWrap:'wrap'}}>
+          <div style={{position:'relative', flex:'1 1 200px', minWidth: 200, maxWidth: 320}}>
             <input
               aria-label="Pesquisar"
               value={query}
               onChange={e=>setQuery(e.target.value)}
               placeholder="Pesquisar por nome, SKU..."
-              style={{height: 40, padding: `0 ${DS.spacing(3)}`, fontSize: DS.font.size.sm, fontFamily: DS.font.familySans, color: DS.color.textPrimary, background: DS.color.surface, border: `1px solid ${DS.color.border}`, borderRadius: DS.radius.md, outline: 'none', width: 280, transition:'all 0.2s'}}
+              style={{height: 40, padding: `0 ${DS.spacing(3)}`, fontSize: DS.font.size.sm, fontFamily: DS.font.familySans, color: DS.color.textPrimary, background: DS.color.surface, border: `1px solid ${DS.color.border}`, borderRadius: DS.radius.md, outline: 'none', width: '100%', transition:'all 0.2s'}}
             />
           </div>
-          <div style={{height: 24, width: 1, background: DS.color.border}} />
-          <Button color="cyan" onClick={openCreate} size="sm" h={40}>{label.new}</Button>
-          <Button variant="default" onClick={openEdit} disabled={!exactlyOneSelected} size="sm" h={40}>{label.edit}</Button>
-          <Button color="red" onClick={confirmDelete} disabled={!anySelected} variant="filled" size="sm" h={40}>{label.delete}</Button>
+          <div style={{display:'flex', gap: DS.spacing(2), flexWrap:'wrap'}}>
+            <Button color="cyan" onClick={openCreate} size="sm" h={40}>{label.new}</Button>
+            <Button variant="default" onClick={openEdit} disabled={!exactlyOneSelected} size="sm" h={40}>{label.edit}</Button>
+            <Button color="red" onClick={confirmDelete} disabled={!anySelected} variant="filled" size="sm" h={40}>{label.delete}</Button>
+          </div>
         </div>
       </div>
 

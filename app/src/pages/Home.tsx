@@ -470,8 +470,8 @@ export default function Home() {
         <Title level={1} style={{ fontWeight: DS.font.weightLight, letterSpacing: DS.font.letterSpacing.tight }}>Razai Tools</Title>
       </Hero>
 
-      {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: DS.spacing(6), marginTop: DS.spacing(12), marginBottom: DS.spacing(12) }}>
+      {/* Stats - responsivo */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: DS.spacing(6), marginTop: DS.spacing(12), marginBottom: DS.spacing(12) }}>
         <div style={{
           padding: DS.spacing(6),
           background: DS.color.surface,
