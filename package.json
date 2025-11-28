@@ -1,7 +1,7 @@
 {
   "name": "razai-tools",
   "private": true,
-  "version": "0.1.5",
+  "version": "0.1.7",
   "scripts": {
     "dev": "npm --prefix app run dev",
     "build": "npm --prefix app run build",
