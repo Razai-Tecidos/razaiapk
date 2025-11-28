@@ -163,7 +163,10 @@ export default defineConfig({
   plugins,
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src')
+      '@': path.resolve(__dirname, './src'),
+      // Force single React instance to avoid "Invalid hook call" errors
+      'react': path.resolve(__dirname, './node_modules/react'),
+      'react-dom': path.resolve(__dirname, './node_modules/react-dom')
     }
   },
   // Allow dynamic port override and fallback if the chosen port is busy.
