@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../RazaiToolsMobile"
+		}
+	],
+	"settings": {
+		"chat.customAgentInSubagent.enabled": true,
+		"powershell.cwd": "RazaiToolsMobile"
+	}
+}

@@ -414,7 +414,7 @@ const renderApp = () => {
           'a:hover': { color: DS.color.accent },
           'a:focus-visible, button:focus-visible': { outline:`2px solid ${DS.color.focus}`, outlineOffset:2, borderRadius:4 },
           '::selection': { background: DS.color.accent, color: '#fff' },
-          '.ds-container': { maxWidth:'1200px', margin:'0 auto', padding:'0 32px' }
+          '.ds-container': { maxWidth:'1600px', margin:'0 auto', padding:'0 32px' }
         })} />
         <Notifications position="top-right" />
         <AppErrorBoundary>

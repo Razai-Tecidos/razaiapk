@@ -6,6 +6,7 @@ import { messages } from '@/lib/messages'
 import type { Pattern, PatternInput } from '@/types/pattern'
 import { DS } from '@/design-system/tokens'
 import { Container } from '@/design-system/components'
+import LazyImage from '@/components/LazyImage'
 
 type Mode = 'idle' | 'create' | 'edit'
 
@@ -32,6 +33,7 @@ export default function Patterns() {
   const [toast, setToast] = useState<{ type: 'success' | 'error'; msg: string } | null>(null)
   const [confirm, setConfirm] = useState<{ msg: string; onYes: () => void } | null>(null)
   const [query, setQuery] = useState('')
+  const [previewSrc, setPreviewSrc] = useState<string | null>(null)
   type SortKey = 'createdAt' | 'family' | 'name' | 'sku'
   const [sort, setSort] = useState<{ key: SortKey; dir: 'asc' | 'desc' }>({ key: 'createdAt', dir: 'desc' })
   const nameRef = useRef<HTMLInputElement>(null)
@@ -292,6 +294,8 @@ export default function Patterns() {
               <th style={th()}>
                 <button onClick={()=>toggleSort('sku')} style={thBtn(sort.key==='sku')}>SKU_Estampa {arrow('sku', sort)}</button>
               </th>
+              <th style={th()}>Imagem</th>
+              <th style={th()}>Ações</th>
             </tr>
           </thead>
           <tbody style={{background: DS.color.bg}}>
@@ -329,11 +333,47 @@ export default function Patterns() {
                   <td style={td()}>{it.family}</td>
                   <td style={td()}>{[it.family, it.name].filter(Boolean).join(' ')}</td>
                   <td style={td()}>{it.sku}</td>
+                  <td style={td()}>
+                    {(() => {
+                      const imgSrc = it.imageThumb || it.image
+                      if (!imgSrc) return <span style={{ color:DS.color.textSecondary }}>—</span>
+                      return (
+                        <div onClick={(e) => { e.stopPropagation(); setPreviewSrc(imgSrc) }}>
+                          <LazyImage
+                            src={imgSrc}
+                            alt={`Imagem ${it.sku}`}
+                            width={40}
+                            height={40}
+                            style={{ borderRadius: 4, border: `1px solid ${DS.color.border}`, cursor: 'zoom-in' }}
+                            placeholderBg="#e5e5e5"
+                          />
+                        </div>
+                      )
+                    })()}
+                  </td>
+                  <td style={td()}>
+                    <label style={{ display:'inline-flex', alignItems:'center', gap:6, cursor:'pointer' }} onClick={e=>e.stopPropagation()}>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        style={{ display:'none' }}
+                        onChange={async (e) => {
+                          const inputEl = e.currentTarget
+                          const file = e.target.files && e.target.files[0]
+                          if (!file) return
+                          await patternsDb.setImageFull(it.id, file)
+                          await load()
+                          try { if (inputEl) inputEl.value = '' } catch {}
+                        }}
+                      />
+                      <span style={{...btn('ghost'), fontSize:12, padding:'4px 8px'}}>Upload</span>
+                    </label>
+                  </td>
                 </tr>
               )})}
             {filteredSorted.length === 0 && (
               <tr>
-                <td colSpan={4} style={{...td(), color:DS.color.textSecondary, textAlign:'center', padding: DS.spacing(8)}}>Nenhuma estampa cadastrada</td>
+                <td colSpan={6} style={{...td(), color:DS.color.textSecondary, textAlign:'center', padding: DS.spacing(8)}}>Nenhuma estampa cadastrada</td>
               </tr>
             )}
           </tbody>
@@ -411,6 +451,23 @@ export default function Patterns() {
       {toast && (
         <div style={{ position:'fixed', right:24, bottom:24, background: toast.type==='success'? DS.color.success : DS.color.danger, color:'#fff', padding:`${DS.spacing(3)} ${DS.spacing(4)}`, borderRadius:DS.radius.md, boxShadow:DS.shadow.lg, zIndex:100, fontWeight:DS.font.weightMedium }} role="status" aria-live="polite">
           {toast.msg}
+        </div>
+      )}
+
+      {previewSrc && (
+        <div
+          role="dialog"
+          aria-label="Pré-visualização da imagem"
+          onClick={()=>{ setPreviewSrc(null) }}
+          style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.7)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:200 }}
+        >
+          <div style={{background:DS.color.surfaceAlt, padding:24, borderRadius:12, boxShadow:'0 2px 16px #0008', display:'flex', flexDirection:'column', alignItems:'center', gap:16}} onClick={e=>e.stopPropagation()}>
+            <img src={previewSrc} alt="Pré-visualização" style={{ maxWidth:'60vw', maxHeight:'60vh', borderRadius:8, border:`1px solid ${DS.color.border}`, marginBottom:12 }} />
+            <div style={{display:'flex', gap:12, alignItems:'center'}}>
+              <Button color="red" onClick={()=>{ setPreviewSrc(null) }}>Fechar</Button>
+            </div>
+            <div style={{color:DS.color.textSecondary, fontSize:12}}>Clique fora para fechar</div>
+          </div>
         </div>
       )}
     </section>

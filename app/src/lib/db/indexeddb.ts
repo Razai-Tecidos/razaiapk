@@ -458,12 +458,42 @@ export async function createPattern(input: Pattern): Promise<void> {
   await db.put('patterns', input)
 }
 
-export async function updatePattern(input: { id: string; family: string; name: string }): Promise<void> {
+export async function updatePattern(input: { id: string; family: string; name: string; image_path?: string }): Promise<void> {
   const db = await getDb()
   const current = (await db.get('patterns', input.id)) as Pattern | undefined
   if (!current) return
   // SKU permanece imutável mesmo que família/nome mudem
-  const updated: Pattern = { ...current, family: input.family, name: input.name }
+  const updated: Pattern = { ...current, family: input.family, name: input.name, image_path: input.image_path }
+  await db.put('patterns', updated)
+}
+
+export async function updatePatternImageFull(id: string, file: File): Promise<void> {
+  const db = await getDb()
+  const current = await db.get('patterns', id) as Pattern | undefined
+  if (!current) return
+  let hash = ''
+  try {
+    const buf = await file.arrayBuffer()
+    const digest = await crypto.subtle.digest('SHA-256', buf)
+    hash = Array.from(new Uint8Array(digest)).map(b=>b.toString(16).padStart(2,'0')).join('')
+    const exists = await db.get('link_images', hash)
+    if (!exists) {
+      await db.put('link_images', { hash, mime: file.type || 'application/octet-stream', blob: new Blob([buf], { type: file.type }) })
+    }
+  } catch {
+    hash = crypto.randomUUID().replace(/-/g,'')
+    const buf = await file.arrayBuffer()
+    await db.put('link_images', { hash, mime: file.type || 'application/octet-stream', blob: new Blob([buf], { type: file.type }) })
+  }
+  
+  const thumb = await new Promise<string>((resolve) => {
+    const fr = new FileReader()
+    fr.onload = () => resolve(String(fr.result))
+    fr.onerror = () => resolve('')
+    fr.readAsDataURL(file)
+  })
+
+  const updated: Pattern = { ...current, image_path: `idb:${hash}`, imageThumb: thumb }
   await db.put('patterns', updated)
 }
 

@@ -389,7 +389,11 @@ export const patternsDb = {
     }
     const { data, error } = await supabase.from('patterns').select('*').order('created_at', { ascending: false })
     if (error) throw error
-    return data as Pattern[]
+    return (data || []).map((p: any) => ({
+      ...p,
+      image_path: p.image_path,
+      image: p.image_path ? supabase.storage.from('pattern-images').getPublicUrl(p.image_path).data.publicUrl : undefined
+    })) as Pattern[]
   },
   async createPattern(input: PatternInput) {
     if (useLocalDb) {
@@ -402,6 +406,7 @@ export const patternsDb = {
         family: familyDisplay,
         name: (input.name || '').trim(),
         sku,
+        image_path: input.image_path,
         createdAt: new Date().toISOString()
       }
       await idb.createPattern(pattern)
@@ -428,20 +433,43 @@ export const patternsDb = {
       id,
       sku,
       family: familyDisplay,
-      name: (input.name || '').trim()
+      name: (input.name || '').trim(),
+      image_path: input.image_path
     })
     if (error) throw error
   },
   async updatePattern(input: { id: string } & PatternInput) {
     if (useLocalDb) {
-      await idb.updatePattern({ id: input.id, family: input.family, name: input.name })
+      await idb.updatePattern({ id: input.id, family: input.family, name: input.name, image_path: input.image_path })
       return
     }
     const { error } = await supabase.from('patterns').update({
       name: input.name,
-      family: input.family
+      family: input.family,
+      image_path: input.image_path
     }).eq('id', input.id)
     if (error) throw error
+  },
+  async setImageFull(id: string, file: File) {
+    if (useLocalDb) {
+      await idb.updatePatternImageFull(id, file)
+      return
+    }
+    const ext = file.name.split('.').pop()
+    const path = `${id}.${ext}`
+    
+    const { error: uploadError } = await supabase.storage
+      .from('pattern-images')
+      .upload(path, file, { upsert: true })
+      
+    if (uploadError) throw uploadError
+    
+    const { error: updateError } = await supabase
+      .from('patterns')
+      .update({ image_path: path })
+      .eq('id', id)
+      
+    if (updateError) throw updateError
   },
   async deletePattern(id: string) {
     if (useLocalDb) {
