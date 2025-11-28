@@ -62,6 +62,7 @@ import MobileStockPage from './pages/MobileStock'
 import { importFullBackup } from '@/lib/import'
 import { buildFullBackupJson } from '@/lib/backup'
 import { bootstrapCloudImport, autoImportIfNeeded, ensureDefaultCloudConfig, uploadNewBackup } from '@/lib/cloud-sync'
+import { db, colorsDb, patternsDb } from '@/lib/db'
 import AppErrorBoundary from '@/components/AppErrorBoundary'
 import { isTauri, openExternal } from '@/lib/platform'
 
@@ -119,9 +120,9 @@ async function maybeRunHashSyncImport() {
     if (!res.ok) return
     const text = await res.text()
     await importFullBackup(text, {
-      createTissue: (input) => import('@/lib/db').then(m=>m.db.createTissue(input)),
-      createColor: (input) => import('@/lib/db').then(m=>m.colorsDb.createColor(input)),
-      createPattern: (input) => import('@/lib/db').then(m=>m.patternsDb.createPattern(input)),
+      createTissue: (input) => db.createTissue(input),
+      createColor: (input) => colorsDb.createColor(input),
+      createPattern: (input) => patternsDb.createPattern(input),
     })
     // Basic visual cue using alert if Notifications not yet mounted
     try { alert('Sincronização concluída: backup importado no navegador.') } catch {}
@@ -212,9 +213,9 @@ async function maybeRunDevImport() {
     if (!res.ok) return
     const text = await res.text()
     await importFullBackup(text, {
-      createTissue: (input) => import('@/lib/db').then(m=>m.db.createTissue(input)),
-      createColor: (input) => import('@/lib/db').then(m=>m.colorsDb.createColor(input)),
-      createPattern: (input) => import('@/lib/db').then(m=>m.patternsDb.createPattern(input)),
+      createTissue: (input) => db.createTissue(input),
+      createColor: (input) => colorsDb.createColor(input),
+      createPattern: (input) => patternsDb.createPattern(input),
     })
     try { alert('Sincronização (dev) concluída: backup do Tauri importado no navegador.') } catch {}
   } catch {}
