@@ -37,7 +37,6 @@
     "idb": "^8.0.0",
     "jspdf": "^2.5.1",
     "pdf-lib": "^1.17.1",
-    "razai-tools": "file:..",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.28.0"
