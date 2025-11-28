@@ -86,6 +86,7 @@ const plugins: PluginOption[] = [
 ]
 
 if (!isTauriBuild && !disablePwa) {
+  /*
   const pwaPlugin = VitePWA({
       registerType: 'autoUpdate',
       workbox: {
@@ -151,6 +152,8 @@ if (!isTauriBuild && !disablePwa) {
   } else {
     plugins.push(pwaPlugin)
   }
+  */
+  console.log('[vite] PWA plugin TEMPORARILY DISABLED to debug caching issues')
 } else {
   if (disablePwa) {
     console.log('[vite] PWA plugin disabled via DISABLE_PWA=1 environment override')
