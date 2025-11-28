@@ -189,12 +189,7 @@ export const colorsDb = {
   async createColor(input: ColorInput) {
     if (useLocalDb) {
       const id = crypto.randomUUID()
-      const family = (() => {
-        const fromName = detectFamilyFromName(input.name)
-        if (fromName) return fromName
-        const fromSpec = inferFamilyFrom({ hex: input.hex, labL: input.labL, labA: input.labA, labB: input.labB })
-        return (fromSpec && fromSpec !== '—') ? fromSpec : 'Outros'
-      })()
+      const family = detectFamilyFromName(input.name) || 'Outros'
       const code = familyCodeFor(family)
       const sku = await idb.nextColorSkuByFamilyCode(code)
       const createdAt = new Date().toISOString()
@@ -218,12 +213,7 @@ export const colorsDb = {
     const id = crypto.randomUUID()
     
     // Family logic
-    const family = (() => {
-      const fromName = detectFamilyFromName(input.name)
-      if (fromName) return fromName
-      const fromSpec = inferFamilyFrom({ hex: input.hex, labL: input.labL, labA: input.labA, labB: input.labB })
-      return (fromSpec && fromSpec !== '—') ? fromSpec : 'Outros'
-    })()
+    const family = detectFamilyFromName(input.name) || 'Outros'
     const code = familyCodeFor(family)
     
     // SKU Logic: Count existing in family to generate next
@@ -268,6 +258,9 @@ export const colorsDb = {
         labA: input.labA,
         labB: input.labB
       })
+      if (typeof input.labL === 'number' && typeof input.labA === 'number' && typeof input.labB === 'number') {
+        await familyStatsDb.recalculateAll()
+      }
       return
     }
     const { error } = await supabase.from('colors').update({
@@ -278,6 +271,10 @@ export const colorsDb = {
       lab_b: input.labB
     }).eq('id', input.id)
     if (error) throw error
+
+    if (typeof input.labL === 'number' && typeof input.labA === 'number' && typeof input.labB === 'number') {
+      await familyStatsDb.recalculateAll()
+    }
   },
   async deleteColor(id: string) {
     if (useLocalDb) {
@@ -318,12 +315,7 @@ export const colorsDb = {
       const colors = await idb.listColors()
       const byFamily = new Map<string, Color[]>()
       for (const color of colors) {
-        const fromName = detectFamilyFromName(color.name)
-        let family = fromName || 'Outros'
-        if (!fromName) {
-          const fromSpec = inferFamilyFrom({ hex: color.hex, labL: color.labL, labA: color.labA, labB: color.labB })
-          if (fromSpec && fromSpec !== '—') family = fromSpec
-        }
+        const family = detectFamilyFromName(color.name) || 'Outros'
         if (!byFamily.has(family)) byFamily.set(family, [])
         byFamily.get(family)!.push(color)
       }
@@ -350,12 +342,7 @@ export const colorsDb = {
     
     const colorsByNewFamily = new Map<string, Color[]>()
     for (const color of colors) {
-      const fromName = detectFamilyFromName(color.name)
-      let family = fromName || 'Outros'
-      if (!fromName) {
-        const fromSpec = inferFamilyFrom({ hex: color.hex, labL: color.labL, labA: color.labA, labB: color.labB })
-        if (fromSpec && fromSpec !== '—') family = fromSpec
-      }
+      const family = detectFamilyFromName(color.name) || 'Outros'
       if (!colorsByNewFamily.has(family)) colorsByNewFamily.set(family, [])
       colorsByNewFamily.get(family)!.push(color)
     }
@@ -534,12 +521,7 @@ export const familyStatsDb = {
       for (const c of colors) {
         if (typeof c.labL === 'number' && typeof c.labA === 'number' && typeof c.labB === 'number') {
           const hue = labHueAngle({ L: c.labL, a: c.labA, b: c.labB })
-          const fromName = detectFamilyFromName(c.name)
-          let family = fromName || 'Outros'
-          if (!fromName) {
-            const fromSpec = inferFamilyFrom({ hex: c.hex, labL: c.labL, labA: c.labA, labB: c.labB })
-            if (fromSpec && fromSpec !== '—') family = fromSpec
-          }
+          const family = detectFamilyFromName(c.name) || 'Outros'
           families.add(family)
           await idb.updateFamilyStat(family, hue)
         }
@@ -547,25 +529,42 @@ export const familyStatsDb = {
       return { totalFamilies: families.size, totalColors: colors.length }
     }
     // Reset stats
-    await supabase.from('family_stats').delete()
+    await supabase.from('family_stats').delete().neq('family_name', '_')
     
     const colors = await colorsDb.listColors()
-    const families = new Set<string>()
+    const statsMap = new Map<string, { min: number, max: number, sum: number, count: number }>()
+    
     for (const c of colors) {
       if (typeof c.labL === 'number' && typeof c.labA === 'number' && typeof c.labB === 'number') {
         const hue = labHueAngle({ L: c.labL, a: c.labA, b: c.labB })
-        // Infer family
-        const fromName = detectFamilyFromName(c.name)
-        let family = fromName || 'Outros'
-        if (!fromName) {
-          const fromSpec = inferFamilyFrom({ hex: c.hex, labL: c.labL, labA: c.labA, labB: c.labB })
-          if (fromSpec && fromSpec !== '—') family = fromSpec
+        const family = detectFamilyFromName(c.name) || 'Outros'
+        
+        if (!statsMap.has(family)) {
+            statsMap.set(family, { min: hue, max: hue, sum: hue, count: 1 })
+        } else {
+            const s = statsMap.get(family)!
+            s.min = Math.min(s.min, hue)
+            s.max = Math.max(s.max, hue)
+            s.sum += hue
+            s.count++
         }
-        families.add(family)
-        await this.updateStat(family, hue)
       }
     }
-    return { totalFamilies: families.size, totalColors: colors.length }
+    
+    const rows = Array.from(statsMap.entries()).map(([family, s]) => ({
+       family_name: family,
+       hue_min: s.min,
+       hue_max: s.max,
+       hue_avg: s.sum / s.count,
+       color_count: s.count,
+       updated_at: new Date().toISOString()
+    }))
+    
+    if (rows.length > 0) {
+       const { error } = await supabase.from('family_stats').insert(rows)
+       if (error) throw error
+    }
+    return { totalFamilies: rows.length, totalColors: colors.length }
   }
 }
 
@@ -590,7 +589,7 @@ export const linksDb = {
     return (data || []).map((l: any) => {
       const t = l.tissues
       const c = l.colors
-      const family = c ? inferFamilyFrom({ hex: c.hex, labL: c.lab_l, labA: c.lab_a, labB: c.lab_b }) : '—'
+      const family = c ? (detectFamilyFromName(c.name) || 'Outros') : '—'
       
       return {
         id: l.id,

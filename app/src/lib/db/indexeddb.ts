@@ -4,7 +4,7 @@ import type { Color } from '@/types/color'
 import type { Pattern } from '@/types/pattern'
 import type { TecidoCor, TecidoCorView } from '@/types/tecidoCor'
 import type { TecidoEstampa } from '@/types/tecidoEstampa'
-import { inferFamilyFrom } from '@/lib/color-utils'
+import { detectFamilyFromName, inferFamilyFrom } from '@/lib/color-utils'
 
 let dbPromise: Promise<IDBPDatabase> | null = null
 
@@ -161,7 +161,7 @@ export async function listTecidoCor(): Promise<TecidoCorView[]> {
     const t = tMap.get(l.tissueId)
     const c = cMap.get(l.colorId)
     if (!t || !c) continue // skip broken refs
-    const family = inferFamilyFrom({ hex: c.hex, labL: c.labL, labA: c.labA, labB: c.labB })
+    const family = detectFamilyFromName(c.name) || 'Outros'
     result.push({
       ...l,
       tissueSku: t.sku,

@@ -3,7 +3,7 @@ import { Button } from '@mantine/core'
 import { db, colorsDb, settingsDb } from '@/lib/db'
 import { normalizeForSearch } from '@/lib/text'
 import { messages } from '@/lib/messages'
-import { ciede2000, inferFamilyFrom, labFromPartial, labToHex, hexToLab, FAMILY_NAMES, FAMILY_TOKENS, setHueBoundaries } from '@/lib/color-utils'
+import { ciede2000, inferFamilyFrom, detectFamilyFromName, labFromPartial, labToHex, hexToLab, FAMILY_NAMES, FAMILY_TOKENS, setHueBoundaries } from '@/lib/color-utils'
 import type { Color, ColorInput } from '@/types/color'
 import { DS } from '@/design-system/tokens'
 import { Container } from '@/design-system/components'
@@ -483,8 +483,7 @@ export default function Colors() {
   }, [testLab, labsById, items])
 
   function familyOf(c: Color): string {
-    const fam = inferFamilyFrom({ hex: c.hex, labL: c.labL, labA: c.labA, labB: c.labB })
-    return fam || '—'
+    return detectFamilyFromName(c.name) || 'Outros'
   }
 
   function displayName(c: Color): string {
