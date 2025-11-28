@@ -61,7 +61,7 @@ import MobileStockPage from './pages/MobileStock'
 
 import { importFullBackup } from '@/lib/import'
 import { buildFullBackupJson } from '@/lib/backup'
-import { bootstrapCloudImport, autoImportIfNeeded, ensureDefaultCloudConfig } from '@/lib/cloud-sync'
+import { bootstrapCloudImport, autoImportIfNeeded, ensureDefaultCloudConfig, uploadNewBackup } from '@/lib/cloud-sync'
 import AppErrorBoundary from '@/components/AppErrorBoundary'
 import { isTauri, openExternal } from '@/lib/platform'
 
@@ -132,33 +132,71 @@ async function maybeRunHashSyncImport() {
   }
 }
 
-// Tauri close handler: push backup to localhost and open browser with sync link
+// Tauri close handler: Ask user to sync before closing
 async function setupTauriCloseSync() {
   if (!isRunningInTauri) return
   try {
     const { getCurrentWindow } = await import('@tauri-apps/api/window')
+    const { ask } = await import('@tauri-apps/plugin-dialog')
+    const { notifications } = await import('@mantine/notifications')
+    
     const appWindow = getCurrentWindow()
+    let isExiting = false
+
     await appWindow.onCloseRequested(async (event: any) => {
-      try {
-        event?.preventDefault?.()
-        // build backup from SQLite
-        const json = await buildFullBackupJson()
-        // try to POST to vite dev endpoint (works when localhost dev server is running)
+      if (isExiting) return
+      
+      event.preventDefault()
+      
+      const answer = await ask('Deseja enviar os dados para a nuvem antes de sair?', {
+        title: 'Sincronizar e Sair',
+        kind: 'info',
+        okLabel: 'Sim, enviar',
+        cancelLabel: 'Não, apenas sair'
+      })
+
+      if (answer) {
+        notifications.show({
+          id: 'sync-close',
+          title: 'Sincronizando...',
+          message: 'Enviando backup para a nuvem. Aguarde.',
+          loading: true,
+          autoClose: false,
+          withCloseButton: false
+        })
+        
         try {
-          const origin = (window?.location?.origin) || 'http://localhost:5173'
-          await fetch(origin + '/api/import', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: json })
-          // open default browser to trigger the web app to load and auto-import via /api/import one-shot
-          try {
-            const httpOrigin = /^https?:\/\//i.test(origin) ? origin : 'http://localhost:5173'
-            await openExternal(httpOrigin + '/')
-          } catch {}
-        } catch {}
-      } finally {
-        try { await appWindow.close() } catch {}
+          const res = await uploadNewBackup()
+          if (res.ok) {
+            notifications.update({
+              id: 'sync-close',
+              title: 'Sucesso',
+              message: 'Dados enviados. Fechando...',
+              color: 'green',
+              loading: false
+            })
+            // Give user a moment to see success
+            await new Promise(r => setTimeout(r, 1000))
+          } else {
+            notifications.update({
+              id: 'sync-close',
+              title: 'Erro no envio',
+              message: `Falha: ${res.reason}. Fechando...`,
+              color: 'red',
+              loading: false
+            })
+            await new Promise(r => setTimeout(r, 2000))
+          }
+        } catch (e) {
+           console.error(e)
+        }
       }
+      
+      isExiting = true
+      await appWindow.close()
     })
-  } catch {
-    // ignore
+  } catch (e) {
+    console.error('Failed to setup close handler', e)
   }
 }
 
