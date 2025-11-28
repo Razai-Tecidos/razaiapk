@@ -2,7 +2,7 @@
 import { 
   Button, Title, Text, Paper, Group, Stack, TextInput, 
   Select, Checkbox, ActionIcon, Badge, Table, ScrollArea, 
-  Box, Grid, Tooltip, LoadingOverlay, Card, Divider
+  Box, Grid, Tooltip, LoadingOverlay, Card, Divider, Switch
 } from '@mantine/core'
 import { IconSearch, IconTrash, IconRefresh, IconDownload, IconEye, IconX, IconPlus, IconLink } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
@@ -375,7 +375,7 @@ export default function TecidoCorPage() {
                   <Table.Th>Cor</Table.Th>
                   <Table.Th>Imagem</Table.Th>
                   <Table.Th>Família</Table.Th>
-                  <Table.Th>Status</Table.Th>
+                  <Table.Th>Disponibilidade</Table.Th>
                   <Table.Th style={{ textAlign: 'right' }}>Ações</Table.Th>
                 </Table.Tr>
               </Table.Thead>
@@ -420,9 +420,14 @@ export default function TecidoCorPage() {
                     </Table.Td>
                     <Table.Td>{l.family}</Table.Td>
                     <Table.Td>
-                      <Badge color={l.status === 'Ativo' ? 'green' : 'gray'} variant="dot">
-                        {l.status}
-                      </Badge>
+                      <Switch 
+                        checked={l.status === 'Ativo'}
+                        onChange={() => toggleStatus(l)}
+                        color="green"
+                        size="sm"
+                        label={l.status === 'Ativo' ? 'Disponível' : 'Indisponível'}
+                        styles={{ label: { fontSize: '12px', color: l.status === 'Ativo' ? 'var(--mantine-color-green-7)' : 'var(--mantine-color-gray-6)' } }}
+                      />
                     </Table.Td>
                     <Table.Td>
                       <Group gap={4} justify="flex-end">
@@ -441,16 +446,6 @@ export default function TecidoCorPage() {
                                 notifications.show({ title: 'Upload', message: 'Imagem atualizada', color: 'green' })
                               }}
                             />
-                          </ActionIcon>
-                        </Tooltip>
-                        <Tooltip label={l.status === 'Ativo' ? 'Desativar' : 'Ativar'}>
-                          <ActionIcon 
-                            variant="light" 
-                            color={l.status === 'Ativo' ? 'orange' : 'green'} 
-                            size="sm"
-                            onClick={() => toggleStatus(l)}
-                          >
-                            <IconRefresh size={14} />
                           </ActionIcon>
                         </Tooltip>
                         <Tooltip label="Excluir">
