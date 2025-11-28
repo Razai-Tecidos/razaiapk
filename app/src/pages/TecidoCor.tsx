@@ -163,7 +163,7 @@ export default function TecidoCorPage() {
     <section style={{display:'grid', gap:24}}>
       <div style={{
         marginBottom: DS.spacing(8),
-        position: 'sticky', top: 0, zIndex: 20, background: DS.color.bg,
+        position: 'sticky', top: 64, zIndex: 20, background: DS.color.bg,
         paddingTop: DS.spacing(2), paddingBottom: DS.spacing(4)
       }}>
         <h1 style={{color: DS.color.textPrimary, margin:0, fontSize: DS.font.size.display, fontWeight: DS.font.weightLight, letterSpacing: DS.font.letterSpacing.tight}}>Vínculo Tecido-Cor</h1>

@@ -248,7 +248,7 @@ export default function Patterns() {
   return (
     <Container padY={12}>
       <section style={{display:'grid', gap:DS.spacing(6)}}>
-      <div data-testid="actions-bar-top" style={{display:'flex', alignItems:'center', justifyContent:'space-between', position: 'sticky', top: 0, zIndex: 20, background: DS.color.bg, paddingTop: DS.spacing(2), paddingBottom: DS.spacing(4)}}>
+      <div data-testid="actions-bar-top" style={{display:'flex', alignItems:'center', justifyContent:'space-between', position: 'sticky', top: 64, zIndex: 20, background: DS.color.bg, paddingTop: DS.spacing(2), paddingBottom: DS.spacing(4)}}>
         <h1 style={{color:DS.color.textPrimary, margin: 0, fontSize:DS.font.size.display, fontWeight:DS.font.weightLight, letterSpacing:DS.font.letterSpacing.tight}}>{label.title}</h1>
         <div style={{display:'flex', gap: DS.spacing(3), alignItems:'center'}}>
           <div style={{position:'relative'}}>

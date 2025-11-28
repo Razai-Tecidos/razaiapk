@@ -128,7 +128,7 @@ export default function StockPage() {
         <Panel>
           <div style={{ 
             display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12,
-            position: 'sticky', top: 0, zIndex: 20, background: DS.color.surface,
+            position: 'sticky', top: 64, zIndex: 20, background: DS.color.surface,
             paddingTop: DS.spacing(2), paddingBottom: DS.spacing(2)
           }}>
             <Input 

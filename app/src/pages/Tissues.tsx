@@ -245,7 +245,7 @@ export default function Tissues() {
       {/* Seção superior - responsiva */}
       <div style={{
         display:'flex', flexDirection:'column', gap: DS.spacing(4),
-        position: 'sticky', top: 0, zIndex: 20, background: DS.color.bg,
+        position: 'sticky', top: 64, zIndex: 20, background: DS.color.bg,
         paddingTop: DS.spacing(2), paddingBottom: DS.spacing(4)
       }}>
         <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap: DS.spacing(3)}}>
