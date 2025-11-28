@@ -193,10 +193,9 @@ export default defineConfig({
         format: 'es',
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom') || id.includes('@remix-run') || id.includes('scheduler')) {
-              return 'vendor-react';
-            }
-            // Force everything else into a single vendor chunk to prevent multiple instance issues
+            // Force ALL node_modules into a single vendor chunk
+            // This is the safest way to prevent "Invalid hook call" and "function is not a function" errors
+            // caused by split chunks having circular dependencies or missing exports.
             return 'vendor';
           }
         }
