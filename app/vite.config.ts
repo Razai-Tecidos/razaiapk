@@ -189,7 +189,12 @@ export default defineConfig({
     outDir: 'dist',
     rollupOptions: {
       output: {
-        format: 'es'
+        format: 'es',
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-mantine': ['@mantine/core', '@mantine/hooks', '@mantine/notifications', '@emotion/react'],
+          'vendor-utils': ['@supabase/supabase-js', 'idb', 'date-fns']
+        }
       }
     }
   }

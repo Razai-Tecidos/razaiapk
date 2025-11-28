@@ -13,6 +13,8 @@ import PublicLayout from './layouts/PublicLayout'
 import Home from './pages/Home'
 import Tissues from './pages/Tissues'
 import Colors from './pages/Colors'
+import ColorFamilies from './pages/ColorFamilies'
+import Patterns from './pages/Patterns'
 // Vitrine pages (Eager to prevent production hook errors)
 import ShowcaseHome from './pages/vitrine/ShowcaseHome'
 import ShowcaseTissueDetails from './pages/vitrine/ShowcaseTissueDetails'
@@ -47,9 +49,9 @@ if (typeof Node === 'function' && Node.prototype) {
 }
 
 // Lazy pages (rare / heavier)
-const Patterns = React.lazy(() => import('./pages/Patterns'))
+// const Patterns = React.lazy(() => import('./pages/Patterns'))
 const Settings = React.lazy(() => import('./pages/Settings'))
-const ColorFamilies = React.lazy(() => import('./pages/ColorFamilies'))
+// const ColorFamilies = React.lazy(() => import('./pages/ColorFamilies'))
 const CatalogPage = React.lazy(() => import('./pages/Catalog'))
 const TecidoCorPage = React.lazy(() => import('./pages/TecidoCor'))
 const StockPage = React.lazy(() => import('./pages/Stock'))
@@ -90,13 +92,13 @@ function AppRouter() {
             <Route index element={<Home />} />
             <Route path="tecidos" element={<Tissues />} />
             <Route path="cores" element={<Colors />} />
-            <Route path="estampas" element={<React.Suspense fallback={<div>Carregando...</div>}><Patterns /></React.Suspense>} />
+            <Route path="estampas" element={<Patterns />} />
             <Route path="tecido-cor" element={<React.Suspense fallback={<div>Carregando...</div>}><TecidoCorPage /></React.Suspense>} />
             <Route path="tecido-estampa" element={<React.Suspense fallback={<div>Carregando...</div>}><TecidoEstampaPage /></React.Suspense>} />
             <Route path="catalogo" element={<React.Suspense fallback={<div>Carregando...</div>}><CatalogPage /></React.Suspense>} />
             <Route path="exportacoes" element={<React.Suspense fallback={<div>Carregando...</div>}><Exportacoes /></React.Suspense>} />
             <Route path="configuracoes" element={<React.Suspense fallback={<div>Carregando...</div>}><Settings /></React.Suspense>} />
-            <Route path="familias" element={<React.Suspense fallback={<div>Carregando...</div>}><ColorFamilies /></React.Suspense>} />
+            <Route path="familias" element={<ColorFamilies />} />
             <Route path="recolor" element={<React.Suspense fallback={<div>Carregando...</div>}><RecolorPreviewPage /></React.Suspense>} />
             <Route path="migration" element={<React.Suspense fallback={<div>Carregando...</div>}><MigrationPage /></React.Suspense>} />
           </Route>
