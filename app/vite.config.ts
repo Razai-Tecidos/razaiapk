@@ -165,12 +165,13 @@ if (!isTauriBuild && !disablePwa) {
 export default defineConfig({
   plugins,
   resolve: {
-    dedupe: ['react', 'react-dom'],
+    dedupe: ['react', 'react-dom', 'scheduler'],
     alias: {
       '@': path.resolve(__dirname, './src'),
       // Force single React instance to avoid "Invalid hook call" errors
       'react': path.resolve(__dirname, './node_modules/react'),
       'react-dom': path.resolve(__dirname, './node_modules/react-dom'),
+      'scheduler': path.resolve(__dirname, './node_modules/scheduler'),
       'react/jsx-runtime': path.resolve(__dirname, './node_modules/react/jsx-runtime'),
       'react/jsx-dev-runtime': path.resolve(__dirname, './node_modules/react/jsx-dev-runtime')
     }
@@ -192,7 +193,7 @@ export default defineConfig({
         format: 'es',
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom') || id.includes('@remix-run')) {
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom') || id.includes('@remix-run') || id.includes('scheduler')) {
               return 'vendor-react';
             }
             // Force everything else into a single vendor chunk to prevent multiple instance issues
