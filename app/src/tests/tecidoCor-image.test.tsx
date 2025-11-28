@@ -113,7 +113,8 @@ describe('Vínculo Tecido-Cor - envio de imagem por vínculo', () => {
     expect(rowsAfter.length).toBeGreaterThan(1)
     const bodyRow = rowsAfter[1]
     // Enviar imagem
-    const actionsCell = within(bodyRow).getAllByRole('cell').at(-1) as HTMLElement
+    const cells = within(bodyRow).getAllByRole('cell')
+    const actionsCell = cells[cells.length - 1] as HTMLElement
     const imgButton = within(actionsCell).getByRole('button', { name: /imagem/i })
     await userEvent.click(imgButton)
     const fileInput = actionsCell.querySelector('input[type="file"]') as HTMLInputElement
