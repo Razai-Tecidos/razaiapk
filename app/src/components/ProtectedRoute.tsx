@@ -10,7 +10,7 @@ interface ProtectedRouteProps {
 export default function ProtectedRoute({ allowedRoles, redirectPath = '/login' }: ProtectedRouteProps) {
   const location = useLocation()
   const { user, role, loading } = useAuth()
-  const effectiveRole = role || 'collaborator'
+  const effectiveRole = role || 'admin'
 
   console.log('[ProtectedRoute] State:', { user: !!user, role: effectiveRole, loading, path: location.pathname })
 
