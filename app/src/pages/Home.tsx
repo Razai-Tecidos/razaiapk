@@ -183,89 +183,109 @@ export default function Home() {
 
   return (
     <Container padY={12}>
-      <Hero subtitle="Ferramentas profissionais para gestão de tecidos, cores, estampas e geração de SKUs. Rápido, consistente e confiável.">
-        <Title level={1} style={{ fontWeight: DS.font.weightLight, letterSpacing: DS.font.letterSpacing.tight }}>Razai Tools</Title>
-      </Hero>
-
-      {/* Stats - responsivo */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: DS.spacing(6), marginTop: DS.spacing(12), marginBottom: DS.spacing(12) }}>
-        <StatCard value={stats.tissues} label="Tecidos" />
-        <StatCard value={stats.colors} label="Cores" />
-        <StatCard value={stats.patterns} label="Estampas" />
-      </div>
-      
-      <section style={{ marginBottom: DS.spacing(12) }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: DS.spacing(6) }}>
-          <Text size="xs" weight={DS.font.weightBold} style={{ color: DS.color.textMuted, textTransform: 'uppercase', letterSpacing: DS.font.letterSpacing.wider }}>
-            Ações Rápidas
-          </Text>
-          <div style={{ height: 1, flex: 1, background: DS.color.borderSubtle, marginLeft: DS.spacing(4) }} />
-        </div>
-        <div style={{ display: 'flex', gap: DS.spacing(4), flexWrap: 'wrap' }}>
-          <DSButton tone="danger" size="lg" onClick={() => setCutterModalOpen(true)} style={{ height: 48 }}>✂️ Avisar Falta</DSButton>
-          <DSButton tone="accent" size="lg" onClick={() => setActiveModal('tissue')} style={{ height: 48 }}>+ Novo Tecido</DSButton>
-          <DSButton variant="outline" size="lg" onClick={() => setActiveModal('color')} style={{ height: 48 }}>+ Nova Cor</DSButton>
-          <DSButton variant="outline" size="lg" onClick={() => setActiveModal('pattern')} style={{ height: 48 }}>+ Nova Estampa</DSButton>
-          <div style={{ flex: 1 }} />
-          <DSButton variant="ghost" size="md" onClick={() => setActiveModal('import')} style={{ height: 48 }}>↓ Importar Backup</DSButton>
-        </div>
-      </section>
-
-      <section style={{ marginBottom: DS.spacing(12) }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: DS.spacing(6) }}>
-          <Text size="xs" weight={DS.font.weightBold} style={{ color: DS.color.textMuted, textTransform: 'uppercase', letterSpacing: DS.font.letterSpacing.wider }}>
-            Módulos
-          </Text>
-          <div style={{ height: 1, flex: 1, background: DS.color.borderSubtle, marginLeft: DS.spacing(4) }} />
-        </div>
-        <GridAuto min={260} gap={6}>
-          <DSCard to="/tecidos" title="Tecidos" description="Cadastro e visualização completa de tecidos disponíveis." icon="🧵" />
-          <DSCard to="/cores" title="Cores" description="Gerir famílias, nomes e métricas LAB de cores." icon="🎨" />
-          <DSCard to="/estampas" title="Estampas" description="Registrar estampas e aplicar em tecidos." icon="✨" />
-          <DSCard to="/tecido-cor" title="Tecido-Cor" description="Gerar SKUs filhos combinando tecido e cor." icon="🔗" />
-          <DSCard to="/tecido-estampa" title="Tecido-Estampa" description="Gerar SKUs com estampas aplicadas." icon="🖼️" />
-          <DSCard to="/recolor" title="Recolorir" description="Recolorir tecidos com cores customizadas usando processamento de imagem." icon="🎨✨" />
-          <DSCard to="/catalogo" title="Catálogo" description="Visualizar e exportar catálogo de produtos em PDF." icon="📋" />
-          <DSCard to="/exportacoes" title="Backup & Import" description="Exportar estado completo ou importar backups." icon="💾" />
-          <DSCard to="/configuracoes" title="Configurações" description="Ajustes finos de classificação e limites." icon="⚙️" />
-        </GridAuto>
-      </section>
-
-      <section style={{ 
-        marginTop: DS.spacing(8), 
-        padding: DS.spacing(6),
-        background: DS.color.surfaceAlt,
-        borderRadius: DS.radius.lg,
-        border: `1px solid ${DS.color.border}`
-      }}>
-        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: DS.spacing(6)}}>
-          <Title level={3} mb={0} style={{ fontSize: DS.font.size.lg, fontWeight: DS.font.weightSemibold }}>Atividade Recente</Title>
-          {lastSync && (
-            <Text size="xs" style={{ color: lastSync.ok ? DS.color.success : DS.color.danger, fontWeight: DS.font.weightMedium }}>
-              {lastSync.ok ? '☁️ Sincronizado: ' : '⚠️ Falha sync: '}
-              {new Date(lastSync.ts).toLocaleString()}
-            </Text>
-          )}
-        </div>
+      {/* Top Section: Hero & Stats */}
+      <div style={{ marginBottom: DS.spacing(8) }}>
+        <Hero subtitle="Ferramentas profissionais para gestão de tecidos, cores, estampas e geração de SKUs.">
+          <Title level={1} style={{ fontWeight: DS.font.weightLight, letterSpacing: DS.font.letterSpacing.tight }}>Razai Tools</Title>
+        </Hero>
         
-        {recentActivity.length === 0 ? (
-          <div style={{ padding: DS.spacing(8), textAlign: 'center', color: DS.color.textSecondary }}>
-            Nenhuma atividade registrada ainda.
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: DS.spacing(6), marginTop: DS.spacing(8) }}>
+          <StatCard value={stats.tissues} label="Tecidos" />
+          <StatCard value={stats.colors} label="Cores" />
+          <StatCard value={stats.patterns} label="Estampas" />
+        </div>
+      </div>
+
+      {/* Main Layout Grid */}
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
+        gap: DS.spacing(8),
+        alignItems: 'start' 
+      }}>
+        
+        {/* Left Column: Modules (Navigation) */}
+        <div style={{ flex: 2, minWidth: 'min(100%, 600px)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: DS.spacing(6) }}>
+            <Text size="xs" weight={DS.font.weightBold} style={{ color: DS.color.textMuted, textTransform: 'uppercase', letterSpacing: DS.font.letterSpacing.wider }}>
+              Módulos
+            </Text>
+            <div style={{ height: 1, flex: 1, background: DS.color.borderSubtle, marginLeft: DS.spacing(4) }} />
           </div>
-        ) : (
-          <div style={{ display: 'grid', gap: DS.spacing(3) }}>
-            {recentActivity.map((item) => (
-              <ActivityCard
-                key={`${item.type}-${item.id}`}
-                type={item.type}
-                name={item.name}
-                detail={item.detail}
-                date={item.date}
-              />
-            ))}
+          
+          <GridAuto min={240} gap={6}>
+            <DSCard to="/tecidos" title="Tecidos" description="Cadastro e visualização completa." icon="🧵" />
+            <DSCard to="/cores" title="Cores" description="Gerir famílias e métricas LAB." icon="🎨" />
+            <DSCard to="/estampas" title="Estampas" description="Registrar estampas." icon="✨" />
+            <DSCard to="/tecido-cor" title="Tecido-Cor" description="Gerar SKUs filhos." icon="🔗" />
+            <DSCard to="/tecido-estampa" title="Tecido-Estampa" description="Gerar SKUs com estampas." icon="🖼️" />
+            <DSCard to="/recolor" title="Recolorir" description="Simulação de cores." icon="🎨✨" />
+            <DSCard to="/catalogo" title="Catálogo" description="Exportar PDF." icon="📋" />
+            <DSCard to="/estoque" title="Estoque" description="Gestão de rolos e saldo." icon="📦" />
+            <DSCard to="/configuracoes" title="Configurações" description="Ajustes do sistema." icon="⚙️" />
+          </GridAuto>
+        </div>
+
+        {/* Right Column: Actions & Activity (Sidebar) */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: DS.spacing(8) }}>
+          
+          {/* Quick Actions Panel */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: DS.spacing(6) }}>
+              <Text size="xs" weight={DS.font.weightBold} style={{ color: DS.color.textMuted, textTransform: 'uppercase', letterSpacing: DS.font.letterSpacing.wider }}>
+                Ações Rápidas
+              </Text>
+              <div style={{ height: 1, flex: 1, background: DS.color.borderSubtle, marginLeft: DS.spacing(4) }} />
+            </div>
+            
+            <div style={{ display: 'grid', gap: DS.spacing(3) }}>
+              <DSButton tone="danger" size="lg" onClick={() => setCutterModalOpen(true)} style={{ justifyContent: 'flex-start' }}>✂️ Avisar Falta</DSButton>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: DS.spacing(3) }}>
+                <DSButton tone="accent" onClick={() => setActiveModal('tissue')}>+ Tecido</DSButton>
+                <DSButton variant="outline" onClick={() => setActiveModal('color')}>+ Cor</DSButton>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: DS.spacing(3) }}>
+                <DSButton variant="outline" onClick={() => setActiveModal('pattern')}>+ Estampa</DSButton>
+                <DSButton variant="ghost" onClick={() => setActiveModal('import')}>↓ Importar</DSButton>
+              </div>
+            </div>
           </div>
-        )}
-      </section>
+
+          {/* Recent Activity Panel */}
+          <div style={{ 
+            padding: DS.spacing(6),
+            background: DS.color.surfaceAlt,
+            borderRadius: DS.radius.lg,
+            border: `1px solid ${DS.color.border}`
+          }}>
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: DS.spacing(4)}}>
+              <Title level={3} mb={0} style={{ fontSize: DS.font.size.md, fontWeight: DS.font.weightSemibold }}>Atividade Recente</Title>
+              {lastSync && (
+                <div title={new Date(lastSync.ts).toLocaleString()} style={{ width: 8, height: 8, borderRadius: '50%', background: lastSync.ok ? DS.color.success : DS.color.danger }} />
+              )}
+            </div>
+            
+            {recentActivity.length === 0 ? (
+              <div style={{ padding: DS.spacing(4), textAlign: 'center', color: DS.color.textSecondary, fontSize: DS.font.size.sm }}>
+                Sem atividades.
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gap: DS.spacing(3) }}>
+                {recentActivity.map((item) => (
+                  <ActivityCard
+                    key={`${item.type}-${item.id}`}
+                    type={item.type}
+                    name={item.name}
+                    detail={item.detail}
+                    date={item.date}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+        </div>
+      </div>
 
       {/* Cutter Mode Modal */}
       <CutterMode isOpen={cutterModalOpen} onClose={() => setCutterModalOpen(false)} />
