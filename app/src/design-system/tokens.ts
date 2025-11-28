@@ -1,41 +1,43 @@
-// Design System - Clean Light Theme (v3)
-// Ultra-minimal, modern, clean
+// Design System - Razai Identity (v4)
+// Sophisticated, Industrial, Texture-focused
 
 export const DS = {
   color: {
-    // Backgrounds - pure clean whites
-    bg: '#FFFFFF',
+    // Backgrounds
+    bg: '#F8FAFC', // Slate 50
     surface: '#FFFFFF', 
-    surfaceAlt: '#F9FAFB',
-    bgHover: '#F3F4F6',
+    surfaceAlt: '#F1F5F9', // Slate 100
+    bgHover: '#E2E8F0', // Slate 200
     
-    // Borders - subtle grays
-    border: '#E5E7EB',
-    borderStrong: '#D1D5DB',
-    borderSubtle: '#F3F4F6',
-    hover: '#F9FAFB',
+    // Borders
+    border: '#E2E8F0', // Slate 200
+    borderStrong: '#CBD5E1', // Slate 300
+    borderSubtle: '#F1F5F9',
+    hover: '#F8FAFC',
     
-    // Text - clear contrast
-    textPrimary: '#111827',
-    textSecondary: '#6B7280',
-    textMuted: '#9CA3AF',
-    textSubtle: '#D1D5DB',
+    // Text
+    textPrimary: '#0F172A', // Slate 900
+    textSecondary: '#475569', // Slate 600
+    textMuted: '#94A3B8', // Slate 400
+    textSubtle: '#CBD5E1', // Slate 300
+    textInvert: '#FFFFFF',
     
-    // Interactive - minimal black
-    accent: '#111827',
-    accentHover: '#374151',
-    accentSubtle: '#F9FAFB',
+    // Brand / Interactive
+    brand: '#0F172A', // Slate 900 (Primary Brand)
+    accent: '#6366F1', // Indigo 500 (Interactive)
+    accentHover: '#4F46E5', // Indigo 600
+    accentSubtle: '#EEF2FF', // Indigo 50
     
     // Semantic colors
-    warning: '#F59E0B',
-    danger: '#EF4444',
-    success: '#10B981',
-    info: '#3B82F6',
-    focus: '#3B82F6',
+    warning: '#F59E0B', // Amber 500
+    danger: '#EF4444', // Red 500
+    success: '#10B981', // Emerald 500
+    info: '#3B82F6', // Blue 500
+    focus: '#6366F1', // Indigo 500
     
     // Special
-    gradient: 'linear-gradient(180deg, #FFFFFF 0%, #F9FAFB 100%)',
-    overlay: 'rgba(0, 0, 0, 0.5)'
+    gradient: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
+    overlay: 'rgba(15, 23, 42, 0.6)'
   },
   radius: {
     xs: 4,
@@ -46,16 +48,17 @@ export const DS = {
     pill: 999
   },
   shadow: {
-    xs: '0 1px 2px rgba(0, 0, 0, 0.05)',
-    sm: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
-    md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-    lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
-    xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-    inset: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)'
+    xs: '0 1px 2px rgba(15, 23, 42, 0.05)',
+    sm: '0 1px 3px rgba(15, 23, 42, 0.1), 0 1px 2px rgba(15, 23, 42, 0.06)',
+    md: '0 4px 6px -1px rgba(15, 23, 42, 0.1), 0 2px 4px -1px rgba(15, 23, 42, 0.06)',
+    lg: '0 10px 15px -3px rgba(15, 23, 42, 0.1), 0 4px 6px -2px rgba(15, 23, 42, 0.05)',
+    xl: '0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 10px 10px -5px rgba(15, 23, 42, 0.04)',
+    inset: 'inset 0 2px 4px 0 rgba(15, 23, 42, 0.06)'
   },
   spacing: (n: number) => `${n * 4}px`,
   font: {
     familySans: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    familyMono: '"JetBrains Mono", "Fira Code", monospace',
     
     weightLight: 300,
     weightRegular: 400,

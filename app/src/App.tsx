@@ -1,10 +1,11 @@
 import React from 'react'
 import { Outlet, Link, useLocation } from 'react-router-dom'
-import { Burger, Drawer, Stack, Group, Box, Button } from '@mantine/core'
+import { Burger, Drawer, Stack, Group, Box, Button, Tooltip } from '@mantine/core'
 import { useDisclosure } from '@mantine/hooks'
 import { DS } from '@/design-system/tokens'
 import { APP_VERSION } from './version'
 import { supabase } from '@/lib/supabase'
+import { IconBrandWindows, IconLogout, IconExternalLink } from '@tabler/icons-react'
 
 function Header() {
   const { pathname } = useLocation()
@@ -21,33 +22,59 @@ function Header() {
     { to: '/cores', label: 'Cores' },
     { to: '/familias', label: 'Famílias' },
     { to: '/estampas', label: 'Estampas' },
-    { to: '/tecido-cor', label: 'Tecido-Cor' },
-    { to: '/tecido-estampa', label: 'Tecido-Estampa' },
+    { to: '/tecido-cor', label: 'Vínculos' },
+    { to: '/tecido-estampa', label: 'Vínc. Estampa' },
     { to: '/recolor', label: 'Recolorir' },
     { to: '/catalogo', label: 'Catálogo' },
     { to: '/estoque', label: 'Estoque' },
     { to: '/exportacoes', label: 'Exportações' },
     { to: '/configuracoes', label: 'Config' },
-    { to: '/vitrine', label: 'Vitrine ↗' }
   ]
 
   const LinkItem = ({ to, label, mobile = false }: { to: string, label: string, mobile?: boolean }) => {
     const isActive = to === '/' ? pathname === '/' : pathname.startsWith(to)
+    
+    if (mobile) {
+      return (
+        <Link 
+          to={to} 
+          onClick={close}
+          style={{ 
+            color: isActive ? DS.color.brand : DS.color.textSecondary,
+            textDecoration: 'none',
+            fontSize: DS.font.size.md,
+            fontWeight: isActive ? DS.font.weightSemibold : DS.font.weightMedium,
+            padding: `${DS.spacing(3)} ${DS.spacing(4)}`,
+            borderRadius: DS.radius.md,
+            background: isActive ? DS.color.surfaceAlt : 'transparent',
+            display: 'block',
+            width: '100%'
+          }}
+        >
+          {label}
+        </Link>
+      )
+    }
+
     return (
       <Link 
         to={to} 
-        onClick={mobile ? close : undefined}
         style={{ 
-          color: isActive ? DS.color.accent : DS.color.textSecondary,
+          color: isActive ? DS.color.textInvert : DS.color.textMuted,
           textDecoration: 'none',
-          fontSize: mobile ? DS.font.size.md : DS.font.size.sm,
+          fontSize: DS.font.size.sm,
           fontWeight: isActive ? DS.font.weightMedium : DS.font.weightRegular,
           transition: 'all 0.2s ease',
-          padding: mobile ? `${DS.spacing(3)} ${DS.spacing(4)}` : `${DS.spacing(2)} ${DS.spacing(3)}`,
+          padding: `${DS.spacing(1.5)} ${DS.spacing(3)}`,
           borderRadius: DS.radius.md,
-          background: isActive ? DS.color.surfaceAlt : 'transparent',
+          background: isActive ? 'rgba(255,255,255,0.1)' : 'transparent',
           display: 'block',
-          width: mobile ? '100%' : 'auto'
+        }}
+        onMouseOver={e => {
+          if (!isActive) e.currentTarget.style.color = DS.color.textInvert
+        }}
+        onMouseOut={e => {
+          if (!isActive) e.currentTarget.style.color = DS.color.textMuted
         }}
       >
         {label}
@@ -57,86 +84,115 @@ function Header() {
 
   return (
     <header style={{
-      padding: `${DS.spacing(3)} ${DS.spacing(4)}`,
+      padding: `0 ${DS.spacing(6)}`,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      borderBottom: `1px solid ${DS.color.border}`,
-      background: DS.color.bg,
+      background: DS.color.brand,
       position: 'sticky',
       top: 0,
       zIndex: 100,
       height: 64,
-      boxSizing: 'border-box'
+      boxShadow: DS.shadow.md
     }}>
       <div style={{ display:'flex', alignItems:'center', gap: DS.spacing(3) }}>
         <div style={{ 
-          fontWeight: DS.font.weightSemibold, 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          width: 32, 
+          height: 32, 
+          background: 'rgba(255,255,255,0.1)', 
+          borderRadius: DS.radius.md,
+          color: '#fff'
+        }}>
+          <IconBrandWindows size={18} />
+        </div>
+        <div style={{ 
+          fontWeight: DS.font.weightBold, 
           fontSize: DS.font.size.lg,
-          color: DS.color.textPrimary,
-          letterSpacing: DS.font.letterSpacing.tight
+          color: DS.color.textInvert,
+          letterSpacing: '-0.02em'
         }}>
           Razai Tools
         </div>
         <span style={{
-          fontSize: DS.font.size.xs,
-          padding: `${DS.spacing(0.5)} ${DS.spacing(2)}`,
-          background: DS.color.surfaceAlt,
-          border: `1px solid ${DS.color.border}`,
+          fontSize: '10px',
+          padding: '2px 6px',
+          background: 'rgba(255,255,255,0.1)',
           borderRadius: DS.radius.pill,
-          color: DS.color.textSecondary,
-          fontWeight: DS.font.weightMedium
+          color: 'rgba(255,255,255,0.6)',
+          fontWeight: DS.font.weightMedium,
+          fontFamily: DS.font.familyMono
         }}>
           v{APP_VERSION}
         </span>
       </div>
 
       {/* Desktop Nav */}
-      <Box visibleFrom="lg">
+      <Box visibleFrom="xl">
         <nav style={{ display:'flex', gap: DS.spacing(1), alignItems: 'center', height: '100%' }}>
           {links.map((link) => (
             <LinkItem key={link.to} {...link} />
           ))}
+        </nav>
+      </Box>
+
+      <Group gap="xs">
+        <Tooltip label="Abrir Vitrine Pública">
+          <Button 
+            component={Link}
+            to="/vitrine"
+            target="_blank"
+            variant="subtle" 
+            size="xs" 
+            style={{ color: DS.color.textMuted }}
+          >
+            <IconExternalLink size={18} />
+          </Button>
+        </Tooltip>
+        
+        <Tooltip label="Sair">
           <Button 
             variant="subtle" 
             size="xs" 
             color="gray" 
             onClick={handleLogout}
-            style={{ marginLeft: DS.spacing(2) }}
+            style={{ color: DS.color.textMuted }}
           >
-            Sair
+            <IconLogout size={18} />
           </Button>
-        </nav>
-      </Box>
+        </Tooltip>
 
-      {/* Mobile Nav Trigger */}
-      <Box hiddenFrom="lg">
-        <Burger opened={opened} onClick={toggle} size="sm" />
-      </Box>
+        {/* Mobile Nav Trigger */}
+        <Box hiddenFrom="xl">
+          <Burger opened={opened} onClick={toggle} size="sm" color="white" />
+        </Box>
+      </Group>
 
       {/* Mobile Drawer */}
       <Drawer 
         opened={opened} 
         onClose={close} 
-        size="75%" 
+        size="300px" 
         padding="md" 
-        hiddenFrom="lg" 
+        hiddenFrom="xl" 
         zIndex={1000}
-        title="Menu"
+        title={<span style={{ fontWeight: 700, fontSize: 18 }}>Menu</span>}
       >
         <Stack gap="xs">
           {links.map((link) => (
             <LinkItem key={link.to} {...link} mobile />
           ))}
           <Button 
-            variant="subtle" 
-            size="sm" 
+            variant="light" 
             color="red" 
             onClick={handleLogout}
             fullWidth
-            style={{ marginTop: DS.spacing(4) }}
+            leftSection={<IconLogout size={16} />}
+            mt="xl"
           >
-            Sair
+            Sair do Sistema
           </Button>
         </Stack>
       </Drawer>
@@ -151,7 +207,8 @@ export default function App() {
       background: DS.color.bg,
       color: DS.color.textPrimary,
       display: 'flex',
-      flexDirection: 'column'
+      flexDirection: 'column',
+      fontFamily: DS.font.familySans
     }}>
       <Header />
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>

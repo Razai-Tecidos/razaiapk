@@ -1,7 +1,7 @@
 ﻿import React, { useEffect, useMemo, useState } from 'react'
 import { 
   Button, Title, Text, Paper, Group, Stack, TextInput, 
-  ActionIcon, Badge, Grid, Card, Drawer, NumberInput,
+  ActionIcon, Badge, SimpleGrid, Card, Drawer, NumberInput,
   LoadingOverlay, Box, Tooltip
 } from '@mantine/core'
 import { useForm } from '@mantine/form'
@@ -140,45 +140,42 @@ export default function Tissues() {
             </Badge>
           </Group>
 
-          <Grid gutter="md">
-            {filteredItems.map(item => (
-              <Grid.Col key={item.id} span={{ base: 12, sm: 6, md: 4, lg: 3 }}>
-                <Card withBorder padding="lg" radius="md" style={{ height: '100%' }}>
+          {filteredItems.length > 0 ? (
+            <SimpleGrid cols={{ base: 1, sm: 2, md: 3, lg: 4 }} spacing="md">
+              {filteredItems.map(item => (
+                <Card key={item.id} withBorder padding="lg" radius="md" style={{ transition: 'transform 0.2s, box-shadow 0.2s' }}>
                   <Group justify="space-between" mb="xs">
-                    <Badge variant="light" color="blue">{item.sku}</Badge>
+                    <Badge variant="light" color="blue" size="lg">{item.sku}</Badge>
                     <Group gap={4}>
                       <ActionIcon variant="subtle" color="gray" onClick={() => handleOpenEdit(item)}>
-                        <IconPencil size={16} />
+                        <IconPencil size={18} />
                       </ActionIcon>
                       <ActionIcon variant="subtle" color="red" onClick={() => handleDelete(item.id, item.name)}>
-                        <IconTrash size={16} />
+                        <IconTrash size={18} />
                       </ActionIcon>
                     </Group>
                   </Group>
                   
-                  <Text fw={600} size="lg" mt="xs">{item.name}</Text>
+                  <Text fw={700} size="xl" mt="sm" c="dark">{item.name}</Text>
                   
-                  <Stack gap={4} mt="md">
+                  <Stack gap={8} mt="lg">
                     <Group justify="space-between">
                       <Text size="sm" c="dimmed">Largura</Text>
-                      <Text size="sm">{item.width} cm</Text>
+                      <Text size="sm" fw={500}>{item.width} cm</Text>
                     </Group>
                     <Group justify="space-between">
                       <Text size="sm" c="dimmed">Composição</Text>
-                      <Text size="sm" truncate style={{ maxWidth: '60%' }} title={item.composition}>
+                      <Text size="sm" fw={500} truncate style={{ maxWidth: '60%' }} title={item.composition}>
                         {item.composition}
                       </Text>
                     </Group>
                   </Stack>
                 </Card>
-              </Grid.Col>
-            ))}
-            {filteredItems.length === 0 && !loading && (
-              <Grid.Col span={12}>
-                <Text c="dimmed" ta="center" py="xl">Nenhum tecido encontrado</Text>
-              </Grid.Col>
-            )}
-          </Grid>
+              ))}
+            </SimpleGrid>
+          ) : (
+            !loading && <Text c="dimmed" ta="center" py="xl">Nenhum tecido encontrado</Text>
+          )}
         </Paper>
       </Stack>
 

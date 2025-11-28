@@ -1,7 +1,7 @@
 ﻿import React, { useEffect, useMemo, useState } from 'react'
 import { 
   Button, Title, Text, Paper, Group, Stack, TextInput, 
-  ActionIcon, Badge, Grid, Card, Drawer, NumberInput,
+  ActionIcon, Badge, Grid, SimpleGrid, Card, Drawer, NumberInput,
   Box, ColorInput as MantineColorInput, Tooltip, Divider,
   Alert
 } from '@mantine/core'
@@ -232,56 +232,56 @@ export default function Colors() {
             </Badge>
           </Group>
 
-          <Grid gutter="md">
+          <SimpleGrid cols={{ base: 1, sm: 2, md: 3, lg: 4, xl: 5 }} spacing="md">
             {filteredItems.map(item => {
               const lab = labFromPartial({ hex: item.hex, labL: item.labL, labA: item.labA, labB: item.labB })
               const hex = item.hex || (lab ? labToHex(lab) : '#cccccc')
               const family = detectFamilyFromName(item.name) || 'Outros'
 
               return (
-                <Grid.Col key={item.id} span={{ base: 12, sm: 6, md: 4, lg: 3, xl: 2 }}>
-                  <Card withBorder padding="lg" radius="md" style={{ height: '100%' }}>
-                    <Group justify="space-between" mb="xs">
-                      <div 
-                        style={{ 
-                          width: 32, height: 32, borderRadius: 6, 
-                          backgroundColor: hex, 
-                          border: '1px solid rgba(0,0,0,0.1)' 
-                        }} 
-                      />
-                      <Group gap={4}>
-                        <ActionIcon variant="subtle" color="gray" onClick={() => handleOpenEdit(item)}>
-                          <IconPencil size={16} />
-                        </ActionIcon>
-                        <ActionIcon variant="subtle" color="red" onClick={() => handleDelete(item.id, item.name)}>
-                          <IconTrash size={16} />
-                        </ActionIcon>
-                      </Group>
+                <Card key={item.id} withBorder padding={0} radius="md" style={{ height: '100%', overflow: 'hidden', transition: 'transform 0.2s, box-shadow 0.2s' }}>
+                  <Box 
+                    h={100} 
+                    style={{ 
+                      backgroundColor: hex, 
+                      position: 'relative',
+                      borderBottom: '1px solid rgba(0,0,0,0.05)'
+                    }}
+                  >
+                    <Group gap={4} style={{ position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(255,255,255,0.9)', borderRadius: 8, padding: 4, boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
+                      <ActionIcon variant="subtle" color="gray" size="sm" onClick={() => handleOpenEdit(item)}>
+                        <IconPencil size={14} />
+                      </ActionIcon>
+                      <ActionIcon variant="subtle" color="red" size="sm" onClick={() => handleDelete(item.id, item.name)}>
+                        <IconTrash size={14} />
+                      </ActionIcon>
                     </Group>
+                  </Box>
+
+                  <Stack gap="xs" p="md">
+                    <div>
+                      <Text fw={700} size="lg" truncate c="dark" style={{ lineHeight: 1.2 }}>{item.name}</Text>
+                      <Text size="xs" c="dimmed" tt="uppercase" fw={600} style={{ letterSpacing: 0.5 }}>{family}</Text>
+                    </div>
                     
-                    <Text fw={600} size="md" mt="xs" truncate>{item.name}</Text>
-                    <Text size="xs" c="dimmed" mb="md">{family}</Text>
-                    
-                    <Stack gap={2}>
-                      <Group justify="space-between">
-                        <Text size="xs" c="dimmed">HEX</Text>
-                        <Text size="xs" ff="monospace">{hex}</Text>
-                      </Group>
-                      <Group justify="space-between">
-                        <Text size="xs" c="dimmed">SKU</Text>
-                        <Text size="xs" ff="monospace">{item.sku || '-'}</Text>
-                      </Group>
-                    </Stack>
-                  </Card>
-                </Grid.Col>
+                    <Group justify="space-between" mt="xs">
+                      <Stack gap={0}>
+                        <Text size="10px" c="dimmed" tt="uppercase" fw={700}>HEX</Text>
+                        <Text size="sm" ff="monospace" c="dark">{hex}</Text>
+                      </Stack>
+                      <Stack gap={0} align="flex-end">
+                        <Text size="10px" c="dimmed" tt="uppercase" fw={700}>SKU</Text>
+                        <Text size="sm" ff="monospace" c="dark">{item.sku || '—'}</Text>
+                      </Stack>
+                    </Group>
+                  </Stack>
+                </Card>
               )
             })}
-            {filteredItems.length === 0 && !loading && (
-              <Grid.Col span={12}>
-                <Text c="dimmed" ta="center" py="xl">Nenhuma cor encontrada</Text>
-              </Grid.Col>
-            )}
-          </Grid>
+          </SimpleGrid>
+          {filteredItems.length === 0 && !loading && (
+            <Text c="dimmed" ta="center" py="xl">Nenhuma cor encontrada</Text>
+          )}
         </Paper>
       </Stack>
 

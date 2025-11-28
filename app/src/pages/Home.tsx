@@ -1,13 +1,22 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { DSCard, Container, Hero, Title, Text, GridAuto, Row, DSButton, Stack, Modal, Label, Input, Select } from '@/design-system/components'
-import { DS } from '@/design-system/tokens'
+import { 
+  Title, Text, Paper, Group, Stack, SimpleGrid, Card, 
+  ThemeIcon, Box, Badge, Container, Grid, Alert, List,
+  Button, ActionIcon, Modal, TextInput, Select, FileInput
+} from '@mantine/core'
+import { useForm } from '@mantine/form'
+import { 
+  IconNeedleThread, IconPalette, IconTexture, IconLink, 
+  IconPhoto, IconColorFilter, IconFileText, IconPackage, 
+  IconSettings, IconScissors, IconPlus, IconDownload,
+  IconUpload
+} from '@tabler/icons-react'
 import { db, colorsDb, patternsDb } from '@/lib/db'
 import { importFullBackup } from '@/lib/import'
 import { notifications } from '@mantine/notifications'
 import { getLastUploadRecord } from '@/lib/cloud-sync'
 import { CutterMode } from '@/modules/cutter-mode'
-import { StatCard } from '@/components/StatCard'
 import { ActivityCard } from '@/components/ActivityCard'
 
 type ModalType = 'tissue' | 'color' | 'pattern' | 'import' | null
@@ -181,227 +190,225 @@ export default function Home() {
     }
   }
 
+  const modules = [
+    { to: "/tecidos", title: "Tecidos", desc: "Cadastro e visualização completa.", icon: IconNeedleThread, color: "blue" },
+    { to: "/cores", title: "Cores", desc: "Gerir famílias e métricas LAB.", icon: IconPalette, color: "pink" },
+    { to: "/estampas", title: "Estampas", desc: "Registrar estampas.", icon: IconTexture, color: "grape" },
+    { to: "/tecido-cor", title: "Tecido-Cor", desc: "Gerar SKUs filhos.", icon: IconLink, color: "cyan" },
+    { to: "/tecido-estampa", title: "Tecido-Estampa", desc: "Gerar SKUs com estampas.", icon: IconPhoto, color: "violet" },
+    { to: "/recolor", title: "Recolorir", desc: "Simulação de cores.", icon: IconColorFilter, color: "orange" },
+    { to: "/catalogo", title: "Catálogo", desc: "Exportar PDF.", icon: IconFileText, color: "teal" },
+    { to: "/estoque", title: "Estoque", desc: "Gestão de rolos e saldo.", icon: IconPackage, color: "green" },
+    { to: "/configuracoes", title: "Configurações", desc: "Ajustes do sistema.", icon: IconSettings, color: "gray" },
+  ]
+
   return (
-    <Container padY={12}>
-      {/* Top Section: Hero & Stats */}
-      <div style={{ marginBottom: DS.spacing(8) }}>
-        <Hero subtitle="Ferramentas profissionais para gestão de tecidos, cores, estampas e geração de SKUs.">
-          <Title level={1} style={{ fontWeight: DS.font.weightLight, letterSpacing: DS.font.letterSpacing.tight }}>Razai Tools</Title>
-        </Hero>
-        
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: DS.spacing(6), marginTop: DS.spacing(8) }}>
-          <StatCard value={stats.tissues} label="Tecidos" />
-          <StatCard value={stats.colors} label="Cores" />
-          <StatCard value={stats.patterns} label="Estampas" />
-        </div>
-      </div>
-
-      {/* Main Layout Grid */}
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
-        gap: DS.spacing(8),
-        alignItems: 'start' 
-      }}>
-        
-        {/* Left Column: Modules (Navigation) */}
-        <div style={{ flex: 2, minWidth: 'min(100%, 600px)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: DS.spacing(6) }}>
-            <Text size="xs" weight={DS.font.weightBold} style={{ color: DS.color.textMuted, textTransform: 'uppercase', letterSpacing: DS.font.letterSpacing.wider }}>
-              Módulos
-            </Text>
-            <div style={{ height: 1, flex: 1, background: DS.color.borderSubtle, marginLeft: DS.spacing(4) }} />
-          </div>
+    <Box p="xl" style={{ maxWidth: 1600, margin: '0 auto' }}>
+      <Stack gap="xl">
+        {/* Hero Section */}
+        <Box py="xl">
+          <Title order={1} fw={300} style={{ letterSpacing: -1, fontSize: 42 }}>Razai Tools</Title>
+          <Text size="lg" c="dimmed" mt="sm" maw={600}>
+            Ferramentas profissionais para gestão de tecidos, cores, estampas e geração de SKUs.
+          </Text>
           
-          <GridAuto min={240} gap={6}>
-            <DSCard to="/tecidos" title="Tecidos" description="Cadastro e visualização completa." icon="🧵" />
-            <DSCard to="/cores" title="Cores" description="Gerir famílias e métricas LAB." icon="🎨" />
-            <DSCard to="/estampas" title="Estampas" description="Registrar estampas." icon="✨" />
-            <DSCard to="/tecido-cor" title="Tecido-Cor" description="Gerar SKUs filhos." icon="🔗" />
-            <DSCard to="/tecido-estampa" title="Tecido-Estampa" description="Gerar SKUs com estampas." icon="🖼️" />
-            <DSCard to="/recolor" title="Recolorir" description="Simulação de cores." icon="🎨✨" />
-            <DSCard to="/catalogo" title="Catálogo" description="Exportar PDF." icon="📋" />
-            <DSCard to="/estoque" title="Estoque" description="Gestão de rolos e saldo." icon="📦" />
-            <DSCard to="/configuracoes" title="Configurações" description="Ajustes do sistema." icon="⚙️" />
-          </GridAuto>
-        </div>
+          <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="lg" mt={40}>
+            <Paper withBorder p="lg" radius="md" style={{ textAlign: 'center' }}>
+              <Text size="xs" c="dimmed" tt="uppercase" fw={700}>Tecidos</Text>
+              <Text fw={700} style={{ fontSize: 42, lineHeight: 1 }} mt="xs">{stats.tissues}</Text>
+            </Paper>
+            <Paper withBorder p="lg" radius="md" style={{ textAlign: 'center' }}>
+              <Text size="xs" c="dimmed" tt="uppercase" fw={700}>Cores</Text>
+              <Text fw={700} style={{ fontSize: 42, lineHeight: 1 }} mt="xs">{stats.colors}</Text>
+            </Paper>
+            <Paper withBorder p="lg" radius="md" style={{ textAlign: 'center' }}>
+              <Text size="xs" c="dimmed" tt="uppercase" fw={700}>Estampas</Text>
+              <Text fw={700} style={{ fontSize: 42, lineHeight: 1 }} mt="xs">{stats.patterns}</Text>
+            </Paper>
+          </SimpleGrid>
+        </Box>
 
-        {/* Right Column: Actions & Activity (Sidebar) */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: DS.spacing(8) }}>
-          
-          {/* Quick Actions Panel */}
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: DS.spacing(6) }}>
-              <Text size="xs" weight={DS.font.weightBold} style={{ color: DS.color.textMuted, textTransform: 'uppercase', letterSpacing: DS.font.letterSpacing.wider }}>
-                Ações Rápidas
-              </Text>
-              <div style={{ height: 1, flex: 1, background: DS.color.borderSubtle, marginLeft: DS.spacing(4) }} />
-            </div>
-            
-            <div style={{ display: 'grid', gap: DS.spacing(3) }}>
-              <DSButton tone="danger" size="lg" onClick={() => setCutterModalOpen(true)} style={{ justifyContent: 'flex-start' }}>✂️ Avisar Falta</DSButton>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: DS.spacing(3) }}>
-                <DSButton tone="accent" onClick={() => setActiveModal('tissue')}>+ Tecido</DSButton>
-                <DSButton variant="outline" onClick={() => setActiveModal('color')}>+ Cor</DSButton>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: DS.spacing(3) }}>
-                <DSButton variant="outline" onClick={() => setActiveModal('pattern')}>+ Estampa</DSButton>
-                <DSButton variant="ghost" onClick={() => setActiveModal('import')}>↓ Importar</DSButton>
-              </div>
-            </div>
-          </div>
+        <Grid gutter="xl">
+          {/* Left Column: Modules */}
+          <Grid.Col span={{ base: 12, lg: 8 }}>
+            <Text size="sm" c="dimmed" tt="uppercase" fw={700} mb="md" style={{ letterSpacing: 1 }}>Módulos</Text>
+            <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="md">
+              {modules.map((m) => (
+                <Paper 
+                  key={m.to} 
+                  component="a" 
+                  href={m.to}
+                  onClick={(e) => { e.preventDefault(); navigate(m.to) }}
+                  withBorder 
+                  p="md" 
+                  radius="md" 
+                  style={{ 
+                    cursor: 'pointer', 
+                    transition: 'transform 0.2s, box-shadow 0.2s',
+                    textDecoration: 'none',
+                    color: 'inherit'
+                  }}
+                  className="hover-card"
+                >
+                  <Group align="flex-start" mb="sm">
+                    <ThemeIcon size="lg" radius="md" variant="light" color={m.color}>
+                      <m.icon size={20} />
+                    </ThemeIcon>
+                  </Group>
+                  <Text fw={600} size="lg">{m.title}</Text>
+                  <Text size="sm" c="dimmed" mt={4}>{m.desc}</Text>
+                </Paper>
+              ))}
+            </SimpleGrid>
+          </Grid.Col>
 
-          {/* Recent Activity Panel */}
-          <div style={{ 
-            padding: DS.spacing(6),
-            background: DS.color.surfaceAlt,
-            borderRadius: DS.radius.lg,
-            border: `1px solid ${DS.color.border}`
-          }}>
-            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom: DS.spacing(4)}}>
-              <Title level={3} mb={0} style={{ fontSize: DS.font.size.md, fontWeight: DS.font.weightSemibold }}>Atividade Recente</Title>
-              {lastSync && (
-                <div title={new Date(lastSync.ts).toLocaleString()} style={{ width: 8, height: 8, borderRadius: '50%', background: lastSync.ok ? DS.color.success : DS.color.danger }} />
-              )}
-            </div>
-            
-            {recentActivity.length === 0 ? (
-              <div style={{ padding: DS.spacing(4), textAlign: 'center', color: DS.color.textSecondary, fontSize: DS.font.size.sm }}>
-                Sem atividades.
-              </div>
-            ) : (
-              <div style={{ display: 'grid', gap: DS.spacing(3) }}>
-                {recentActivity.map((item) => (
-                  <ActivityCard
-                    key={`${item.type}-${item.id}`}
-                    type={item.type}
-                    name={item.name}
-                    detail={item.detail}
-                    date={item.date}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
+          {/* Right Column: Actions & Activity */}
+          <Grid.Col span={{ base: 12, lg: 4 }}>
+            <Stack gap="xl">
+              {/* Quick Actions */}
+              <Box>
+                <Text size="sm" c="dimmed" tt="uppercase" fw={700} mb="md" style={{ letterSpacing: 1 }}>Ações Rápidas</Text>
+                <Stack gap="sm">
+                  <Button 
+                    color="red" 
+                    size="lg" 
+                    leftSection={<IconScissors size={20} />} 
+                    onClick={() => setCutterModalOpen(true)}
+                    fullWidth
+                    justify="flex-start"
+                  >
+                    Avisar Falta (Modo Cortador)
+                  </Button>
+                  
+                  <SimpleGrid cols={2}>
+                    <Button variant="light" leftSection={<IconPlus size={16} />} onClick={() => setActiveModal('tissue')}>Tecido</Button>
+                    <Button variant="light" leftSection={<IconPlus size={16} />} onClick={() => setActiveModal('color')}>Cor</Button>
+                    <Button variant="light" leftSection={<IconPlus size={16} />} onClick={() => setActiveModal('pattern')}>Estampa</Button>
+                    <Button variant="subtle" leftSection={<IconDownload size={16} />} onClick={() => setActiveModal('import')}>Importar</Button>
+                  </SimpleGrid>
+                </Stack>
+              </Box>
 
-        </div>
-      </div>
+              {/* Recent Activity */}
+              <Paper withBorder p="md" radius="md" bg="gray.0">
+                <Group justify="space-between" mb="md">
+                  <Text fw={600}>Atividade Recente</Text>
+                  {lastSync && (
+                    <Badge variant="dot" color={lastSync.ok ? 'green' : 'red'}>
+                      Sync
+                    </Badge>
+                  )}
+                </Group>
+                
+                {recentActivity.length === 0 ? (
+                  <Text c="dimmed" size="sm" ta="center" py="md">Sem atividades recentes.</Text>
+                ) : (
+                  <Stack gap="sm">
+                    {recentActivity.map((item) => (
+                      <ActivityCard
+                        key={`${item.type}-${item.id}`}
+                        type={item.type}
+                        name={item.name}
+                        detail={item.detail}
+                        date={item.date}
+                      />
+                    ))}
+                  </Stack>
+                )}
+              </Paper>
+            </Stack>
+          </Grid.Col>
+        </Grid>
+      </Stack>
 
       {/* Cutter Mode Modal */}
       <CutterMode isOpen={cutterModalOpen} onClose={() => setCutterModalOpen(false)} />
 
       {/* Modals */}
-      <Modal isOpen={activeModal === 'tissue'} onClose={() => setActiveModal(null)} title="Novo Tecido" size="sm">
-        <Stack gap={4}>
-          <div>
-            <Label htmlFor="tissue-name" required>Nome do Tecido</Label>
-            <Input
-              id="tissue-name"
-              value={tissueName}
-              onChange={(e) => setTissueName(e.target.value)}
-              placeholder="Ex: Algodão Premium"
-              fullWidth
-              style={{ height: 40 }}
-            />
-          </div>
-          <div>
-            <Label htmlFor="tissue-type">Tipo</Label>
-            <Select id="tissue-type" value={tissueType} onChange={(e) => setTissueType(e.target.value)} fullWidth style={{ height: 40 }}>
-              <option value="Liso">Liso</option>
-              <option value="Estampado">Estampado</option>
-              <option value="Misto">Misto</option>
-            </Select>
-          </div>
-          <Row gap={3} justify="flex-end" style={{ marginTop: DS.spacing(4) }}>
-            <DSButton variant="ghost" onClick={() => setActiveModal(null)} style={{ height: 40 }}>Cancelar</DSButton>
-            <DSButton tone="accent" onClick={handleCreateTissue} disabled={!tissueName.trim()} style={{ height: 40 }}>Criar Tecido</DSButton>
-          </Row>
+      <Modal opened={activeModal === 'tissue'} onClose={() => setActiveModal(null)} title="Novo Tecido">
+        <Stack gap="md">
+          <TextInput
+            label="Nome do Tecido"
+            placeholder="Ex: Algodão Premium"
+            required
+            value={tissueName}
+            onChange={(e) => setTissueName(e.target.value)}
+          />
+          <Select
+            label="Tipo"
+            data={['Liso', 'Estampado', 'Misto']}
+            value={tissueType}
+            onChange={(v) => setTissueType(v || 'Liso')}
+          />
+          <Group justify="flex-end" mt="md">
+            <Button variant="default" onClick={() => setActiveModal(null)}>Cancelar</Button>
+            <Button onClick={handleCreateTissue} disabled={!tissueName.trim()}>Criar Tecido</Button>
+          </Group>
         </Stack>
       </Modal>
 
-      <Modal isOpen={activeModal === 'color'} onClose={() => setActiveModal(null)} title="Nova Cor" size="sm">
-        <Stack gap={4}>
-          <div>
-            <Label htmlFor="color-name" required>Nome da Cor</Label>
-            <Input
-              id="color-name"
-              value={colorName}
-              onChange={(e) => setColorName(e.target.value)}
-              placeholder="Ex: Vermelho Intenso"
-              fullWidth
-              style={{ height: 40 }}
-            />
-          </div>
-          <div>
-            <Label htmlFor="color-hex">HEX (opcional)</Label>
-            <Input
-              id="color-hex"
-              value={colorHex}
-              onChange={(e) => setColorHex(e.target.value)}
-              placeholder="#FF0000"
-              fullWidth
-              style={{ height: 40 }}
-            />
-          </div>
-          <Text dimmed size="xs">Você pode adicionar valores LAB posteriormente na página de Cores.</Text>
-          <Row gap={3} justify="flex-end" style={{ marginTop: DS.spacing(4) }}>
-            <DSButton variant="ghost" onClick={() => setActiveModal(null)} style={{ height: 40 }}>Cancelar</DSButton>
-            <DSButton tone="accent" onClick={handleCreateColor} disabled={!colorName.trim()} style={{ height: 40 }}>Criar Cor</DSButton>
-          </Row>
+      <Modal opened={activeModal === 'color'} onClose={() => setActiveModal(null)} title="Nova Cor">
+        <Stack gap="md">
+          <TextInput
+            label="Nome da Cor"
+            placeholder="Ex: Vermelho Intenso"
+            required
+            value={colorName}
+            onChange={(e) => setColorName(e.target.value)}
+          />
+          <TextInput
+            label="HEX (opcional)"
+            placeholder="#FF0000"
+            value={colorHex}
+            onChange={(e) => setColorHex(e.target.value)}
+          />
+          <Text size="xs" c="dimmed">Você pode adicionar valores LAB posteriormente na página de Cores.</Text>
+          <Group justify="flex-end" mt="md">
+            <Button variant="default" onClick={() => setActiveModal(null)}>Cancelar</Button>
+            <Button onClick={handleCreateColor} disabled={!colorName.trim()}>Criar Cor</Button>
+          </Group>
         </Stack>
       </Modal>
 
-      <Modal isOpen={activeModal === 'pattern'} onClose={() => setActiveModal(null)} title="Nova Estampa" size="sm">
-        <Stack gap={4}>
-          <div>
-            <Label htmlFor="pattern-name" required>Nome da Estampa</Label>
-            <Input
-              id="pattern-name"
-              value={patternName}
-              onChange={(e) => setPatternName(e.target.value)}
-              placeholder="Ex: Floral Primavera"
-              fullWidth
-              style={{ height: 40 }}
-            />
-          </div>
-          <div>
-            <Label htmlFor="pattern-file">Imagem (opcional)</Label>
-            <Input
-              id="pattern-file"
-              type="file"
-              accept="image/*"
-              onChange={(e) => setPatternFile(e.target.files?.[0] || null)}
-              fullWidth
-              style={{ height: 40, paddingTop: 8 }}
-            />
-          </div>
-          <Row gap={3} justify="flex-end" style={{ marginTop: DS.spacing(4) }}>
-            <DSButton variant="ghost" onClick={() => setActiveModal(null)} style={{ height: 40 }}>Cancelar</DSButton>
-            <DSButton tone="accent" onClick={handleCreatePattern} disabled={!patternName.trim()} style={{ height: 40 }}>Criar Estampa</DSButton>
-          </Row>
+      <Modal opened={activeModal === 'pattern'} onClose={() => setActiveModal(null)} title="Nova Estampa">
+        <Stack gap="md">
+          <TextInput
+            label="Nome da Estampa"
+            placeholder="Ex: Floral Primavera"
+            required
+            value={patternName}
+            onChange={(e) => setPatternName(e.target.value)}
+          />
+          <FileInput
+            label="Imagem (opcional)"
+            accept="image/*"
+            onChange={setPatternFile}
+            leftSection={<IconUpload size={14} />}
+          />
+          <Group justify="flex-end" mt="md">
+            <Button variant="default" onClick={() => setActiveModal(null)}>Cancelar</Button>
+            <Button onClick={handleCreatePattern} disabled={!patternName.trim()}>Criar Estampa</Button>
+          </Group>
         </Stack>
       </Modal>
 
-      <Modal isOpen={activeModal === 'import'} onClose={() => setActiveModal(null)} title="Importar Backup" size="sm">
-        <Stack gap={4}>
+      <Modal opened={activeModal === 'import'} onClose={() => setActiveModal(null)} title="Importar Backup">
+        <Stack gap="md">
           <Text size="sm">Selecione um arquivo JSON de backup para importar tecidos, cores e estampas.</Text>
-          <Input
-            type="file"
+          <FileInput
             accept=".json"
-            onChange={(e) => {
-              const file = e.target.files?.[0]
+            onChange={(file) => {
               if (file) handleImportBackup(file)
             }}
             disabled={importing}
-            fullWidth
-            style={{ height: 40, paddingTop: 8 }}
+            leftSection={<IconUpload size={14} />}
           />
-          {importing && <Text size="sm">Importando...</Text>}
-          <Row gap={3} justify="flex-end" style={{ marginTop: DS.spacing(4) }}>
-            <DSButton variant="ghost" onClick={() => setActiveModal(null)} disabled={importing} style={{ height: 40 }}>Cancelar</DSButton>
-          </Row>
+          {importing && <Text size="sm" c="dimmed">Importando...</Text>}
+          <Group justify="flex-end" mt="md">
+            <Button variant="default" onClick={() => setActiveModal(null)} disabled={importing}>Cancelar</Button>
+          </Group>
         </Stack>
       </Modal>
-    </Container>
+    </Box>
   )
 }

@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react'
-import { DS } from '@/design-system/tokens'
-import { Container } from '@/design-system/components'
+import { 
+  Title, Text, Paper, Group, Stack, SimpleGrid, Card, 
+  ThemeIcon, Box, Badge, Container, Grid, Alert, List
+} from '@mantine/core'
+import { IconInfoCircle, IconPalette } from '@tabler/icons-react'
 import { familyStatsDb, type FamilyStat } from '@/lib/db'
 import { labToHex } from '@/lib/color-utils'
 import HueWheel from '@/components/HueWheel'
@@ -25,289 +28,113 @@ export default function ColorFamilies() {
   }
 
   return (
-    <Container padY={12}>
-      <div style={{ display: 'grid', gap: DS.spacing(8) }}>
+    <Box p="xl" style={{ maxWidth: 1600, margin: '0 auto' }}>
+      <Stack gap="xl">
         {/* Header */}
         <div>
-          <h1 style={{
-            color: DS.color.textPrimary,
-            margin: 0,
-            fontSize: DS.font.size.display,
-            fontWeight: DS.font.weightLight,
-            letterSpacing: DS.font.letterSpacing.tight,
-            marginBottom: DS.spacing(2)
-          }}>
-            🎨 Famílias de Cores
-          </h1>
-          <p style={{
-            color: DS.color.textSecondary,
-            margin: 0,
-            fontSize: DS.font.size.base,
-            maxWidth: 640
-          }}>
+          <Title order={2} fw={300} style={{ letterSpacing: -0.5 }}>Famílias de Cores</Title>
+          <Text c="dimmed" size="sm">
             Classificação automática baseada nos nomes das cores cadastradas. 
             Cada família mostra sua faixa de matiz no espaço de cores LAB.
-          </p>
+          </Text>
         </div>
 
-        {/* Main Visualization */}
-        <div style={{
-          background: DS.color.surface,
-          border: `1px solid ${DS.color.border}`,
-          borderRadius: DS.radius.lg,
-          padding: DS.spacing(8),
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: DS.spacing(6)
-        }}>
-          <HueWheel 
-            size={360}
-            forcedAngle={undefined}
-            staticMode={true}
-          />
-          
-          {/* Legend - Beautiful chips */}
-          {stats.length > 0 && (
-            <div style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: DS.spacing(3),
-              justifyContent: 'center',
-              maxWidth: 800
-            }}>
-              {stats.map(fam => {
-                const color = getRepresentativeColor(fam.hueAvg)
-                return (
-                  <div
-                    key={fam.familyName}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: DS.spacing(2),
-                      padding: `${DS.spacing(2)} ${DS.spacing(3)}`,
-                      background: DS.color.bgHover,
-                      border: `1px solid ${DS.color.border}`,
-                      borderRadius: DS.radius.pill,
-                      fontSize: DS.font.size.sm,
-                      fontWeight: DS.font.weightMedium
-                    }}
-                  >
-                    <div style={{
-                      width: 16,
-                      height: 16,
-                      borderRadius: '50%',
-                      background: color,
-                      border: `1px solid ${DS.color.border}`
-                    }} />
-                    <span style={{ color: DS.color.textPrimary }}>
-                      {fam.familyName}
-                    </span>
-                    <span style={{ color: DS.color.textSecondary, fontSize: DS.font.size.xs }}>
-                      ({fam.colorCount})
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-          
-          {loading && (
-            <div style={{ color: DS.color.textSecondary, fontSize: DS.font.size.sm }}>
-              Carregando estatísticas...
-            </div>
-          )}
-          
-          {!loading && stats.length === 0 && (
-            <div style={{
-              color: DS.color.textSecondary,
-              fontSize: DS.font.size.sm,
-              textAlign: 'center',
-              padding: DS.spacing(4)
-            }}>
-              Nenhuma cor cadastrada ainda. Vá para Cores e cadastre suas primeiras cores!
-            </div>
-          )}
-        </div>
-
-        {/* Family Cards Grid */}
-        {stats.length > 0 && (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-            gap: DS.spacing(6)
-          }}>
-            {stats.map(family => {
-              const primaryColor = getRepresentativeColor(family.hueAvg)
-              const gradientEnd = getRepresentativeColor(family.hueAvg, 0.15)
-              
-              return (
-                <div
-                  key={family.familyName}
-                  style={{
-                    background: `linear-gradient(135deg, ${DS.color.surface} 0%, ${gradientEnd} 100%)`,
-                    border: `2px solid ${primaryColor}`,
-                    borderRadius: DS.radius.lg,
-                    padding: DS.spacing(6),
-                    boxShadow: DS.shadow.sm
-                  }}
-                >
-                  {/* Family Header */}
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: DS.spacing(3),
-                    marginBottom: DS.spacing(4)
-                  }}>
-                    <div style={{
-                      width: 48,
-                      height: 48,
-                      borderRadius: '50%',
-                      background: primaryColor,
-                      border: `2px solid ${DS.color.border}`,
-                      boxShadow: DS.shadow.md
-                    }} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{
-                        color: DS.color.textPrimary,
-                        fontSize: DS.font.size.lg,
-                        fontWeight: DS.font.weightSemibold,
-                        marginBottom: 2
-                      }}>
-                        {family.familyName}
-                      </div>
-                      <div style={{
-                        color: DS.color.textSecondary,
-                        fontSize: DS.font.size.sm
-                      }}>
-                        {family.colorCount} {family.colorCount === 1 ? 'cor' : 'cores'}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Stats */}
-                  <div style={{ display: 'grid', gap: DS.spacing(2) }}>
-                    <StatRow 
-                      label="Faixa de matiz"
-                      value={formatHueRange(family.hueMin, family.hueMax)}
-                    />
-                    <StatRow 
-                      label="Matiz médio"
-                      value={formatHueValue(family.hueAvg)}
-                    />
-                    <StatRow 
-                      label="Amplitude"
-                      value={formatHueSpan(family.hueMin, family.hueMax)}
-                    />
-                  </div>
+        <Grid gutter="xl">
+          {/* Left Column: Chart & Legend */}
+          <Grid.Col span={{ base: 12, lg: 5 }}>
+            <Paper withBorder p="xl" radius="md" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 32 }}>
+              <Box style={{ position: 'relative' }}>
+                <HueWheel 
+                  size={320}
+                  forcedAngle={undefined}
+                  staticMode={true}
+                />
+                <div style={{ 
+                  position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+                  textAlign: 'center', pointerEvents: 'none'
+                }}>
+                  <Text size="xs" c="dimmed" tt="uppercase" fw={700}>Total</Text>
+                  <Text size="xl" fw={700} style={{ fontSize: 32, lineHeight: 1 }}>
+                    {stats.reduce((acc, curr) => acc + curr.colorCount, 0)}
+                  </Text>
+                  <Text size="xs" c="dimmed">Cores</Text>
                 </div>
-              )
-            })}
-          </div>
-        )}
+              </Box>
+              
+              {/* Legend Grid */}
+              <Box w="100%">
+                <Text size="sm" c="dimmed" tt="uppercase" fw={700} mb="md" ta="center">Legenda de Famílias</Text>
+                <SimpleGrid cols={{ base: 2, sm: 3 }} spacing="xs">
+                  {stats.map(fam => {
+                    const color = getRepresentativeColor(fam.hueAvg)
+                    return (
+                      <Group key={fam.familyName} gap="xs" wrap="nowrap" style={{ 
+                        padding: '6px 10px', 
+                        borderRadius: 6, 
+                        backgroundColor: 'var(--mantine-color-gray-0)',
+                        border: '1px solid var(--mantine-color-gray-2)'
+                      }}>
+                        <Box w={12} h={12} style={{ borderRadius: '50%', backgroundColor: color, flexShrink: 0 }} />
+                        <div style={{ overflow: 'hidden' }}>
+                          <Text size="sm" fw={600} truncate>{fam.familyName}</Text>
+                          <Text size="xs" c="dimmed" lh={1}>{fam.colorCount} cores</Text>
+                        </div>
+                      </Group>
+                    )
+                  })}
+                </SimpleGrid>
+              </Box>
+            </Paper>
+          </Grid.Col>
 
-        {/* Info Section */}
-        <div style={{
-          background: DS.color.surface,
-          borderRadius: DS.radius.lg,
-          padding: DS.spacing(8),
-          border: `1px solid ${DS.color.border}`,
-          boxShadow: DS.shadow.sm
-        }}>
-          <h3 style={{
-            color: DS.color.textPrimary,
-            fontSize: DS.font.size.xl,
-            fontWeight: DS.font.weightSemibold,
-            marginTop: 0,
-            marginBottom: DS.spacing(5)
-          }}>
-            ℹ️ Como Funciona
-          </h3>
-          <div style={{ display: 'grid', gap: DS.spacing(3) }}>
-            <InfoRow 
-              title="Classificação automática"
-              description="A família é extraída da primeira palavra do nome da cor que você cadastra"
-            />
-            <InfoRow 
-              title="Limites adaptativos"
-              description="O sistema calcula os limites de matiz (hue) baseado nas cores existentes em cada família"
-            />
-            <InfoRow 
-              title="Novas famílias"
-              description="Ao cadastrar 'Salmão Claro', uma nova família 'Salmão' é criada automaticamente"
-            />
-            <InfoRow 
-              title="Fallback LAB"
-              description="Cores sem nome específico usam classificação matemática por espaço LAB"
-            />
-            <InfoRow 
-              title="Atualização em tempo real"
-              description="Estatísticas são atualizadas automaticamente sempre que você adiciona uma nova cor"
-            />
-          </div>
-        </div>
-      </div>
-    </Container>
-  )
-}
+          {/* Right Column: Detailed Cards */}
+          <Grid.Col span={{ base: 12, lg: 7 }}>
+            <Stack gap="md">
+              <Alert variant="light" color="blue" title="Como Funciona" icon={<IconInfoCircle size={16} />}>
+                <List size="sm" spacing="xs" center>
+                  <List.Item>A família é extraída da primeira palavra do nome da cor (ex: "Azul Marinho" → "Azul").</List.Item>
+                  <List.Item>O sistema calcula os limites de matiz (hue) baseado nas cores existentes.</List.Item>
+                  <List.Item>Cores sem nome específico usam classificação matemática por espaço LAB.</List.Item>
+                </List>
+              </Alert>
 
-// Helper Components
-function StatRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div style={{
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      padding: `${DS.spacing(2)} 0`
-    }}>
-      <span style={{
-        color: DS.color.textSecondary,
-        fontSize: DS.font.size.sm
-      }}>
-        {label}
-      </span>
-      <span style={{
-        color: DS.color.textPrimary,
-        fontSize: DS.font.size.sm,
-        fontWeight: DS.font.weightMedium,
-        fontFamily: 'monospace'
-      }}>
-        {value}
-      </span>
-    </div>
-  )
-}
+              <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
+                {stats.map(family => {
+                  const primaryColor = getRepresentativeColor(family.hueAvg)
+                  return (
+                    <Card key={family.familyName} withBorder padding="lg" radius="md">
+                      <Group justify="space-between" mb="md">
+                        <Group gap="sm">
+                          <Box w={32} h={32} style={{ borderRadius: 8, backgroundColor: primaryColor }} />
+                          <div>
+                            <Text fw={700} size="lg" lh={1.2}>{family.familyName}</Text>
+                            <Text size="xs" c="dimmed">{family.colorCount} cores cadastradas</Text>
+                          </div>
+                        </Group>
+                        <Badge variant="light" color="gray" size="lg">
+                          {formatHueValue(family.hueAvg)}
+                        </Badge>
+                      </Group>
 
-function InfoRow({ title, description }: { title: string; description: string }) {
-  return (
-    <div style={{ display: 'flex', gap: DS.spacing(3), alignItems: 'flex-start' }}>
-      <span style={{
-        color: DS.color.accent,
-        fontSize: 20,
-        fontWeight: DS.font.weightBold,
-        minWidth: 24
-      }}>
-        •
-      </span>
-      <div style={{ flex: 1 }}>
-        <div style={{
-          color: DS.color.textPrimary,
-          fontSize: DS.font.size.base,
-          fontWeight: DS.font.weightSemibold,
-          marginBottom: 4,
-          lineHeight: 1.4
-        }}>
-          {title}
-        </div>
-        <div style={{
-          color: DS.color.textSecondary,
-          fontSize: DS.font.size.sm,
-          lineHeight: 1.6
-        }}>
-          {description}
-        </div>
-      </div>
-    </div>
+                      <Stack gap="xs" bg="gray.0" p="xs" style={{ borderRadius: 8 }}>
+                        <Group justify="space-between">
+                          <Text size="xs" c="dimmed">Faixa de Matiz</Text>
+                          <Text size="xs" fw={500} ff="monospace">{formatHueRange(family.hueMin, family.hueMax)}</Text>
+                        </Group>
+                        <Group justify="space-between">
+                          <Text size="xs" c="dimmed">Amplitude</Text>
+                          <Text size="xs" fw={500} ff="monospace">{formatHueSpan(family.hueMin, family.hueMax)}</Text>
+                        </Group>
+                      </Stack>
+                    </Card>
+                  )
+                })}
+              </SimpleGrid>
+            </Stack>
+          </Grid.Col>
+        </Grid>
+      </Stack>
+    </Box>
   )
 }
 

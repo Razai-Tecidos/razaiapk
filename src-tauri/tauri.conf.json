@@ -27,10 +27,5 @@
     ]
   },
   "plugins": {
-    "updater": {
-      "endpoints": [
-        "https://github.com/Razai-Tecidos/razaiapk/releases/latest/download/latest.json"
-      ]
-    }
   }
 }

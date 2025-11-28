@@ -385,24 +385,45 @@ const renderApp = () => {
     <React.StrictMode>
       <MantineProvider
         theme={{
-          primaryColor: 'gray',
+          primaryColor: 'indigo',
           fontFamily: DS.font.familySans,
           colors: {
+            // Slate palette to match DS tokens
             gray: [
-              '#FAFAFA',
-              '#F5F5F5',
-              '#E5E5E5',
-              '#D4D4D4',
-              '#A3A3A3',
-              '#737373',
-              '#525252',
-              '#404040',
-              '#262626',
-              '#171717'
-            ]
+              '#F8FAFC', // 0
+              '#F1F5F9', // 1
+              '#E2E8F0', // 2
+              '#CBD5E1', // 3
+              '#94A3B8', // 4
+              '#64748B', // 5
+              '#475569', // 6
+              '#334155', // 7
+              '#1E293B', // 8
+              '#0F172A'  // 9
+            ],
+            dark: [
+              '#C1C2C5',
+              '#A6A7AB',
+              '#909296',
+              '#5C5F66',
+              '#373A40',
+              '#2C2E33',
+              '#25262B',
+              '#1A1B1E',
+              '#141517',
+              '#101113',
+            ],
           },
           headings: { fontFamily: DS.font.familySans, fontWeight: String(DS.font.weightBold) },
-          defaultRadius: 'md'
+          defaultRadius: 'md',
+          components: {
+            Button: {
+              defaultProps: { fw: 500 }
+            },
+            Card: {
+              defaultProps: { shadow: 'sm', withBorder: true }
+            }
+          }
         }}
         forceColorScheme="light"
       >
