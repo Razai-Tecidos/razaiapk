@@ -490,9 +490,17 @@ export default function Colors() {
     const fam = familyOf(c) // família 100% pela inferência LAB (sem interferência do nome)
     if (fam === '—') return (c.name || '').trim()
     const trimmed = (c.name || '').trim()
+    
+    // Include the detected family in the tokens to strip
+    // This handles cases where the family is not in FAMILY_TOKENS (like "Nude")
+    // but was detected by detectFamilyFromName (which returns the first word if unknown)
+    const tokens = [...FAMILY_TOKENS, fam]
+    // Escape regex characters just in case
+    const escapedTokens = tokens.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+
     // Remover qualquer família reconhecida no início do nome já digitado
     // IMPORTANTE: usar \\s no literal de string para virar \s no RegExp
-  const anyFamRegex = new RegExp('^(' + FAMILY_TOKENS.join('|') + ')(?:\\s+|$)', 'i')
+    const anyFamRegex = new RegExp('^(' + escapedTokens.join('|') + ')(?:\\s+|$)', 'i')
     const rest = trimmed.replace(anyFamRegex, '').trim()
     return rest ? `${fam} ${rest}` : fam
   }
@@ -936,7 +944,21 @@ export default function Colors() {
                   <input
                     ref={hexRef}
                     value={form.hex || ''}
-                    onChange={e=>{ const next = { ...form, hex: e.target.value }; setForm(next); setErrors(computeErrors(next, { forEditId: mode==='edit'? selected?.id ?? null : null })) }}
+                    onChange={e=>{
+                      const val = e.target.value
+                      const next = { ...form, hex: val }
+                      // Atualiza LAB automaticamente se o HEX for válido
+                      if (/^#?[0-9a-fA-F]{6}$/.test(val)) {
+                        const lab = hexToLab(val.startsWith('#') ? val : `#${val}`)
+                        if (lab) {
+                          next.labL = Number(lab.L.toFixed(2))
+                          next.labA = Number(lab.a.toFixed(2))
+                          next.labB = Number(lab.b.toFixed(2))
+                        }
+                      }
+                      setForm(next)
+                      setErrors(computeErrors(next, { forEditId: mode==='edit'? selected?.id ?? null : null }))
+                    }}
                     onBlur={()=>setErrors(computeErrors(form, { forEditId: mode==='edit'? selected?.id ?? null : null }))}
                     style={input()}
                     placeholder="#FF0000"
