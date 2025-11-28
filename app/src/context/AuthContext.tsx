@@ -8,16 +8,16 @@ const ROLE_CACHE_PREFIX = 'razai-role:'
 
 const readCachedRole = (userId?: string | null): UserRole => {
   if (!userId || typeof window === 'undefined') return null
-  const value = window.sessionStorage.getItem(`${ROLE_CACHE_PREFIX}${userId}`)
+  const value = window.localStorage.getItem(`${ROLE_CACHE_PREFIX}${userId}`)
   return value === 'admin' ? 'admin' : value === 'collaborator' ? 'collaborator' : null
 }
 
 const writeCachedRole = (userId: string, role: UserRole | null) => {
   if (typeof window === 'undefined') return
   if (!role) {
-    window.sessionStorage.removeItem(`${ROLE_CACHE_PREFIX}${userId}`)
+    window.localStorage.removeItem(`${ROLE_CACHE_PREFIX}${userId}`)
   } else {
-    window.sessionStorage.setItem(`${ROLE_CACHE_PREFIX}${userId}`, role)
+    window.localStorage.setItem(`${ROLE_CACHE_PREFIX}${userId}`, role)
   }
 }
 
@@ -85,9 +85,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (error) {
           console.error('[auth] Role fetch error:', error.message)
-          const fallback = normalizeRole(undefined)
-          setRole(fallback)
-          writeCachedRole(nextSession.user.id, fallback)
+          
+          // If we have a cached role, keep it to support offline/flaky connections
+          const cached = readCachedRole(nextSession.user.id)
+          if (cached) {
+            console.log('[auth] Keeping cached role:', cached)
+          } else {
+            const fallback = normalizeRole(undefined)
+            setRole(fallback)
+            writeCachedRole(nextSession.user.id, fallback)
+          }
         } else {
           const resolved = normalizeRole(data?.role ?? null)
           setRole(resolved)
@@ -96,9 +103,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (err) {
         if (!isMounted || currentToken !== sessionToken) return
         console.error('[auth] Role fetch exception:', err)
-        const fallback = normalizeRole(undefined)
-        setRole(fallback)
-        writeCachedRole(nextSession.user.id, fallback)
+        
+        const cached = readCachedRole(nextSession.user.id)
+        if (cached) {
+          console.log('[auth] Keeping cached role (exception):', cached)
+        } else {
+          const fallback = normalizeRole(undefined)
+          setRole(fallback)
+          writeCachedRole(nextSession.user.id, fallback)
+        }
       } finally {
         if (isMounted && currentToken === sessionToken) {
           setLoading(false)
