@@ -162,11 +162,14 @@ if (!isTauriBuild && !disablePwa) {
 export default defineConfig({
   plugins,
   resolve: {
+    dedupe: ['react', 'react-dom'],
     alias: {
       '@': path.resolve(__dirname, './src'),
       // Force single React instance to avoid "Invalid hook call" errors
       'react': path.resolve(__dirname, './node_modules/react'),
-      'react-dom': path.resolve(__dirname, './node_modules/react-dom')
+      'react-dom': path.resolve(__dirname, './node_modules/react-dom'),
+      'react/jsx-runtime': path.resolve(__dirname, './node_modules/react/jsx-runtime'),
+      'react/jsx-dev-runtime': path.resolve(__dirname, './node_modules/react/jsx-dev-runtime')
     }
   },
   // Allow dynamic port override and fallback if the chosen port is busy.
