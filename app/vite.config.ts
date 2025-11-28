@@ -190,10 +190,14 @@ export default defineConfig({
     rollupOptions: {
       output: {
         format: 'es',
-        manualChunks: {
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-mantine': ['@mantine/core', '@mantine/hooks', '@mantine/notifications', '@emotion/react'],
-          'vendor-utils': ['@supabase/supabase-js', 'idb', 'date-fns']
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom') || id.includes('@remix-run')) {
+              return 'vendor-react';
+            }
+            // Force everything else into a single vendor chunk to prevent multiple instance issues
+            return 'vendor';
+          }
         }
       }
     }

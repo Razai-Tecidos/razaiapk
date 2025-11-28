@@ -48,19 +48,16 @@ if (typeof Node === 'function' && Node.prototype) {
   }
 }
 
-// Lazy pages (rare / heavier)
-// const Patterns = React.lazy(() => import('./pages/Patterns'))
-const Settings = React.lazy(() => import('./pages/Settings'))
-// const ColorFamilies = React.lazy(() => import('./pages/ColorFamilies'))
-const CatalogPage = React.lazy(() => import('./pages/Catalog'))
-const TecidoCorPage = React.lazy(() => import('./pages/TecidoCor'))
-const StockPage = React.lazy(() => import('./pages/Stock'))
-const Exportacoes = React.lazy(() => import('./pages/Exportacoes'))
-const TecidoEstampaPage = React.lazy(() => import('./pages/TecidoEstampa'))
-const RecolorPreviewPage = React.lazy(() => import('./pages/RecolorPreview'))
-const MigrationPage = React.lazy(() => import('./pages/Migration'))
-const CutterModePage = React.lazy(() => import('./pages/CutterMode'))
-const MobileStockPage = React.lazy(() => import('./pages/MobileStock'))
+import Settings from './pages/Settings'
+import CatalogPage from './pages/Catalog'
+import TecidoCorPage from './pages/TecidoCor'
+import StockPage from './pages/Stock'
+import Exportacoes from './pages/Exportacoes'
+import TecidoEstampaPage from './pages/TecidoEstampa'
+import RecolorPreviewPage from './pages/RecolorPreview'
+import MigrationPage from './pages/Migration'
+import CutterModePage from './pages/CutterMode'
+import MobileStockPage from './pages/MobileStock'
 
 import { importFullBackup } from '@/lib/import'
 import { buildFullBackupJson } from '@/lib/backup'
@@ -82,7 +79,7 @@ function AppRouter() {
       
       <Route path="/mobile" element={<ProtectedRoute allowedRoles={['collaborator', 'admin']} />}>
         <Route element={<CollaboratorLayout />}>
-          <Route index element={<React.Suspense fallback={<div>Carregando...</div>}><MobileStockPage /></React.Suspense>} />
+          <Route index element={<MobileStockPage />} />
         </Route>
       </Route>
       
@@ -93,16 +90,16 @@ function AppRouter() {
             <Route path="tecidos" element={<Tissues />} />
             <Route path="cores" element={<Colors />} />
             <Route path="estampas" element={<Patterns />} />
-            <Route path="tecido-cor" element={<React.Suspense fallback={<div>Carregando...</div>}><TecidoCorPage /></React.Suspense>} />
-            <Route path="tecido-estampa" element={<React.Suspense fallback={<div>Carregando...</div>}><TecidoEstampaPage /></React.Suspense>} />
-            <Route path="catalogo" element={<React.Suspense fallback={<div>Carregando...</div>}><CatalogPage /></React.Suspense>} />
-            <Route path="exportacoes" element={<React.Suspense fallback={<div>Carregando...</div>}><Exportacoes /></React.Suspense>} />
-            <Route path="configuracoes" element={<React.Suspense fallback={<div>Carregando...</div>}><Settings /></React.Suspense>} />
+            <Route path="tecido-cor" element={<TecidoCorPage />} />
+            <Route path="tecido-estampa" element={<TecidoEstampaPage />} />
+            <Route path="catalogo" element={<CatalogPage />} />
+            <Route path="exportacoes" element={<Exportacoes />} />
+            <Route path="configuracoes" element={<Settings />} />
             <Route path="familias" element={<ColorFamilies />} />
-            <Route path="recolor" element={<React.Suspense fallback={<div>Carregando...</div>}><RecolorPreviewPage /></React.Suspense>} />
-            <Route path="migration" element={<React.Suspense fallback={<div>Carregando...</div>}><MigrationPage /></React.Suspense>} />
+            <Route path="recolor" element={<RecolorPreviewPage />} />
+            <Route path="migration" element={<MigrationPage />} />
           </Route>
-          <Route path="estoque" element={<React.Suspense fallback={<div>Carregando...</div>}><StockPage /></React.Suspense>} />
+          <Route path="estoque" element={<StockPage />} />
         </Route>
       </Route>
     </Routes>
