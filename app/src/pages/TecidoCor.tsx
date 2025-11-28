@@ -1,11 +1,11 @@
-﻿import React, { useEffect, useMemo, useRef, useState } from 'react'
+﻿import React, { useEffect, useMemo, useState } from 'react'
 import { 
   Button, Title, Text, Paper, Group, Stack, TextInput, 
   Select, Checkbox, ActionIcon, Badge, Table, ScrollArea, 
-  Box, Grid, Tooltip, LoadingOverlay, Card, Divider, Switch,
+  Box, Grid, Tooltip, Card, Divider, Switch,
   ThemeIcon, SimpleGrid
 } from '@mantine/core'
-import { IconSearch, IconTrash, IconRefresh, IconDownload, IconEye, IconX, IconPlus, IconLink, IconNeedleThread } from '@tabler/icons-react'
+import { IconSearch, IconTrash, IconX, IconPlus, IconLink, IconNeedleThread } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
 import { db, colorsDb, linksDb } from '@/lib/db'
 import LazyImage from '@/components/LazyImage'
@@ -21,7 +21,6 @@ export default function TecidoCorPage() {
   const [tissues, setTissues] = useState<Tissue[]>([])
   const [colors, setColors] = useState<Color[]>([])
   const [links, setLinks] = useState<TecidoCorView[]>([])
-  const [loading, setLoading] = useState(true)
   
   // Selection State
   const [selectedTissueId, setSelectedTissueId] = useState<string>('')
@@ -38,14 +37,11 @@ export default function TecidoCorPage() {
   const [previewSrc, setPreviewSrc] = useState<string | null>(null)
   const [processing, setProcessing] = useState(false)
   
-  const colorGridRef = useRef<HTMLDivElement | null>(null)
-
   useEffect(() => {
     loadData()
   }, [])
 
   async function loadData() {
-    setLoading(true)
     try {
       await db.init()
       const [ts, cs, ls] = await Promise.all([
@@ -59,8 +55,6 @@ export default function TecidoCorPage() {
     } catch (error) {
       console.error(error)
       notifications.show({ title: 'Erro', message: 'Falha ao carregar dados', color: 'red' })
-    } finally { 
-      setLoading(false) 
     }
   }
 
@@ -166,7 +160,7 @@ export default function TecidoCorPage() {
   // Filtered Colors for Grid
   const filteredColors = useMemo(() => {
     const q = normalizeForSearch(colorQuery)
-    let list = (!q ? colors : colors.filter(c =>
+    const list = (!q ? colors : colors.filter(c =>
       normalizeForSearch(c.name).includes(q) || normalizeForSearch(c.sku).includes(q)
     ))
     return list.sort((a,b)=>a.name.localeCompare(b.name,'pt-BR'))
