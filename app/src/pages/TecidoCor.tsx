@@ -2,9 +2,10 @@
 import { 
   Button, Title, Text, Paper, Group, Stack, TextInput, 
   Select, Checkbox, ActionIcon, Badge, Table, ScrollArea, 
-  Box, Grid, Tooltip, LoadingOverlay, Card, Divider, Switch
+  Box, Grid, Tooltip, LoadingOverlay, Card, Divider, Switch,
+  ThemeIcon, SimpleGrid
 } from '@mantine/core'
-import { IconSearch, IconTrash, IconRefresh, IconDownload, IconEye, IconX, IconPlus, IconLink } from '@tabler/icons-react'
+import { IconSearch, IconTrash, IconRefresh, IconDownload, IconEye, IconX, IconPlus, IconLink, IconNeedleThread } from '@tabler/icons-react'
 import { notifications } from '@mantine/notifications'
 import { db, colorsDb, linksDb } from '@/lib/db'
 import LazyImage from '@/components/LazyImage'
@@ -14,6 +15,7 @@ import type { TecidoCorView } from '@/types/tecidoCor'
 import { inferFamilyFrom, labFromPartial, labToHex } from '@/lib/color-utils'
 import { normalizeForSearch } from '@/lib/text'
 import { DS } from '@/design-system/tokens'
+import { isTauri } from '@/lib/platform'
 
 export default function TecidoCorPage() {
   const [tissues, setTissues] = useState<Tissue[]>([])
@@ -173,7 +175,7 @@ export default function TecidoCorPage() {
   const displayColors = filteredColors.slice(0, 200)
 
   return (
-    <Box p="xl" style={{ maxWidth: 1600, margin: '0 auto' }}>
+    <Box p="xl" style={{ maxWidth: isTauri() ? 1600 : '100%', margin: '0 auto' }}>
       <Stack gap="xl">
         {/* Header */}
         <Group justify="space-between" align="flex-start">
@@ -186,41 +188,48 @@ export default function TecidoCorPage() {
         {/* Main Creation Area */}
         <Grid gutter="xl">
           {/* Tissues Column */}
-          <Grid.Col span={3}>
-            <Paper withBorder p="md" radius="md" h="100%" style={{ display: 'flex', flexDirection: 'column' }}>
+          <Grid.Col span={{ base: 12, md: 4 }}>
+            <Paper withBorder p="md" radius="md" style={{ display: 'flex', flexDirection: 'column', minHeight: 400, maxHeight: 'calc(100vh - 200px)' }}>
               <Text fw={500} size="sm" c="dimmed" mb="sm" tt="uppercase" style={{ letterSpacing: 1 }}>Tecidos</Text>
-              <ScrollArea style={{ flex: 1, height: 400 }}>
-                <Stack gap={4}>
+              <ScrollArea style={{ flex: 1 }}>
+                <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="xs">
                   {tissues.sort((a,b)=>a.name.localeCompare(b.name)).map(t => {
                     const selected = selectedTissueId === t.id
                     return (
-                      <Box
+                      <Card
                         key={t.id}
+                        withBorder
+                        shadow={selected ? 'sm' : 'none'}
+                        padding="sm"
+                        radius="md"
                         onClick={() => setSelectedTissueId(t.id)}
                         style={{
-                          padding: '10px 12px',
-                          borderRadius: DS.radius.md,
                           cursor: 'pointer',
-                          backgroundColor: selected ? DS.color.info : 'transparent',
-                          color: selected ? '#fff' : 'inherit',
+                          borderColor: selected ? DS.color.info : 'var(--mantine-color-gray-3)',
+                          backgroundColor: selected ? 'var(--mantine-color-blue-0)' : 'transparent',
                           transition: 'all 0.2s ease'
                         }}
                       >
-                        <Text size="sm" fw={500}>{t.name}</Text>
-                        <Text size="xs" c={selected ? 'white' : 'dimmed'} style={{ opacity: 0.8 }}>
-                          {t.sku} • {t.width} cm
-                        </Text>
-                      </Box>
+                        <Stack gap="xs" align="center" style={{ textAlign: 'center' }}>
+                          <ThemeIcon size="lg" variant={selected ? 'filled' : 'light'} color="blue" radius="md">
+                             <IconNeedleThread size={20} />
+                          </ThemeIcon>
+                          <div>
+                            <Text size="sm" fw={600} c="dark" lh={1.2} lineClamp={2}>{t.name}</Text>
+                            <Text size="xs" c="dimmed" mt={4}>{t.sku}</Text>
+                          </div>
+                        </Stack>
+                      </Card>
                     )
                   })}
-                  {tissues.length === 0 && <Text c="dimmed" size="sm" ta="center" py="xl">Nenhum tecido</Text>}
-                </Stack>
+                </SimpleGrid>
+                {tissues.length === 0 && <Text c="dimmed" size="sm" ta="center" py="xl">Nenhum tecido</Text>}
               </ScrollArea>
             </Paper>
           </Grid.Col>
 
           {/* Colors Grid Column */}
-          <Grid.Col span={9}>
+          <Grid.Col span={{ base: 12, md: 8 }}>
             <Paper withBorder p="md" radius="md" h="100%" style={{ display: 'flex', flexDirection: 'column' }}>
               <Group justify="space-between" mb="md">
                 <Text fw={500} size="sm" c="dimmed" tt="uppercase" style={{ letterSpacing: 1 }}>Cores</Text>
