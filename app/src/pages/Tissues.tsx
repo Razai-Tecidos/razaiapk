@@ -243,7 +243,11 @@ export default function Tissues() {
     <Container padY={12}>
     <section style={{display:'grid', gap: DS.spacing(6)}}>
       {/* Seção superior - responsiva */}
-      <div style={{display:'flex', flexDirection:'column', gap: DS.spacing(4)}}>
+      <div style={{
+        display:'flex', flexDirection:'column', gap: DS.spacing(4),
+        position: 'sticky', top: 0, zIndex: 20, background: DS.color.bg,
+        paddingTop: DS.spacing(2), paddingBottom: DS.spacing(4)
+      }}>
         <div style={{display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap: DS.spacing(3)}}>
           <h1 style={{color: DS.color.textPrimary, margin: 0, fontSize: DS.font.size.display, fontWeight: DS.font.weightLight, letterSpacing: DS.font.letterSpacing.tight}}>{label.title}</h1>
         </div>

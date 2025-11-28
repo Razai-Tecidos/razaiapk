@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { Container, Section, Panel, Text, DSButton, Table, TableHead, TableBody, TableRow, TableCell, Spinner, EmptyState, Input } from '@/design-system/components'
+import { DS } from '@/design-system/tokens'
 import { linksDb } from '@/lib/db'
 import { getStockLevel } from '@/lib/stock-api'
 import { TecidoCorView } from '@/types/tecidoCor'
@@ -125,7 +126,11 @@ export default function StockPage() {
         subtitle="Gerencie a entrada e saída de rolos e acompanhe a previsão de ruptura."
       >
         <Panel>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+          <div style={{ 
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12,
+            position: 'sticky', top: 0, zIndex: 20, background: DS.color.surface,
+            paddingTop: DS.spacing(2), paddingBottom: DS.spacing(2)
+          }}>
             <Input 
               placeholder="Filtrar por nome ou SKU..." 
               value={filter} 

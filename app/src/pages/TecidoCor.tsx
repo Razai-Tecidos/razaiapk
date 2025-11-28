@@ -161,7 +161,11 @@ export default function TecidoCorPage() {
   return (
     <Container padY={12}>
     <section style={{display:'grid', gap:24}}>
-      <div style={{ marginBottom: DS.spacing(8) }}>
+      <div style={{
+        marginBottom: DS.spacing(8),
+        position: 'sticky', top: 0, zIndex: 20, background: DS.color.bg,
+        paddingTop: DS.spacing(2), paddingBottom: DS.spacing(4)
+      }}>
         <h1 style={{color: DS.color.textPrimary, margin:0, fontSize: DS.font.size.display, fontWeight: DS.font.weightLight, letterSpacing: DS.font.letterSpacing.tight}}>Vínculo Tecido-Cor</h1>
         <p style={{color: DS.color.textSecondary, fontSize: DS.font.size.md, marginTop: DS.spacing(2), marginBottom: 0, lineHeight: DS.font.lineHeight.normal}}>Crie vínculos entre tecidos e cores para gerar SKUs completos</p>
       </div>
