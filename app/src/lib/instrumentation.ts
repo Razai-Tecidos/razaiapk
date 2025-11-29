@@ -11,7 +11,7 @@ interface MetricEvent {
 }
 
 const _events: MetricEvent[] = []
-let _timers: Record<string, number> = {}
+const _timers: Record<string, number> = {}
 
 export function record(name: string, data?: Record<string, any>) {
   _events.push({ ts: Date.now(), name, data })

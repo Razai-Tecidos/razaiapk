@@ -33,7 +33,7 @@ export default function ColorFamilies() {
         {/* Header */}
         <div>
           <Title order={2} fw={300} style={{ letterSpacing: -0.5 }}>Famílias de Cores</Title>
-          <Text c="dimmed" size="sm">
+            <Text c="dimmed" size="sm">
             Classificação automática baseada nos nomes das cores cadastradas. 
             Cada família mostra sua faixa de matiz no espaço de cores LAB.
           </Text>
@@ -92,13 +92,11 @@ export default function ColorFamilies() {
             <Stack gap="md">
               <Alert variant="light" color="blue" title="Como Funciona" icon={<IconInfoCircle size={16} />}>
                 <List size="sm" spacing="xs" center>
-                  <List.Item>A família é extraída da primeira palavra do nome da cor (ex: "Azul Marinho" → "Azul").</List.Item>
+                  <List.Item>A família é extraída da primeira palavra do nome da cor (ex: &quot;Azul Marinho&quot; → &quot;Azul&quot;).</List.Item>
                   <List.Item>O sistema calcula os limites de matiz (hue) baseado nas cores existentes.</List.Item>
                   <List.Item>Cores sem nome específico usam classificação matemática por espaço LAB.</List.Item>
                 </List>
-              </Alert>
-
-              <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
+              </Alert>              <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
                 {stats.map(family => {
                   const primaryColor = getRepresentativeColor(family.hueAvg)
                   return (

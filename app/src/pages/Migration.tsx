@@ -278,7 +278,7 @@ export default function MigrationPage() {
   const readLocalFile = async (relativePath: string): Promise<Uint8Array | null> => {
     try {
       // Check if running in Tauri
-      // @ts-ignore
+      // @ts-expect-error - Tauri global
       if (window.__TAURI__) {
         const { readFile } = await import('@tauri-apps/plugin-fs')
         const { join, appDataDir } = await import('@tauri-apps/api/path')
