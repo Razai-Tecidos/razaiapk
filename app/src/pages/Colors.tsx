@@ -10,7 +10,7 @@ import { IconSearch, IconPlus, IconPencil, IconTrash, IconDeviceFloppy, IconPale
 import { notifications } from '@mantine/notifications'
 import { db, colorsDb, settingsDb } from '@/lib/db'
 import { normalizeForSearch } from '@/lib/text'
-import { ciede2000, inferFamilyFrom, detectFamilyFromName, labFromPartial, labToHex, hexToLab, setHueBoundaries } from '@/lib/color-utils'
+import { ciede2000, inferFamilyFrom, detectFamilyFromName, labFromPartial, labToHex, hexToLab, setHueBoundaries, compensateLab } from '@/lib/color-utils'
 import type { Color, ColorInput } from '@/types/color'
 
 export default function Colors() {
@@ -24,7 +24,9 @@ export default function Colors() {
 
   // Test Color State
   const [testHex, setTestHex] = useState('')
-  const [testLab, setTestLab] = useState<{L: number, a: number, b: number} | null>(null)
+  const [testLabL, setTestLabL] = useState<string | number>('')
+  const [testLabA, setTestLabA] = useState<string | number>('')
+  const [testLabB, setTestLabB] = useState<string | number>('')
 
   const form = useForm<ColorInput>({
     initialValues: {
@@ -39,6 +41,23 @@ export default function Colors() {
       hex: (value) => value && !/^#?[0-9a-fA-F]{6}$/.test(value) ? 'Hex inválido' : null
     }
   })
+
+  // Auto-calculate HEX from LAB when LAB changes
+  useEffect(() => {
+    const { labL, labA, labB } = form.values
+    if (
+      typeof labL === 'number' && 
+      typeof labA === 'number' && 
+      typeof labB === 'number'
+    ) {
+      // Only update if all 3 are present
+      const hex = labToHex({ L: labL, a: labA, b: labB })
+      // Avoid overwriting if HEX is already correct (to prevent loops if we had 2-way binding, though here it's 1-way mostly)
+      if (hex && hex !== form.values.hex) {
+        form.setFieldValue('hex', hex)
+      }
+    }
+  }, [form.values.labL, form.values.labA, form.values.labB])
 
   useEffect(() => {
     load()
@@ -80,10 +99,12 @@ export default function Colors() {
 
   // Color Test Logic
   const testResult = useMemo(() => {
-    if (!testLab && !testHex) return null
-    
-    let lab = testLab
-    if (!lab && testHex) {
+    let lab: {L: number, a: number, b: number} | null = null
+
+    if (testLabL !== '' && testLabA !== '' && testLabB !== '') {
+      const raw = { L: Number(testLabL), a: Number(testLabA), b: Number(testLabB) }
+      lab = compensateLab(raw)
+    } else if (testHex) {
       const h = testHex.startsWith('#') ? testHex : `#${testHex}`
       if (/^#[0-9a-fA-F]{6}$/.test(h)) {
         const l = hexToLab(h)
@@ -106,9 +127,8 @@ export default function Colors() {
         }
       }
     }
-
     return { best, hit, lab }
-  }, [testHex, testLab, items])
+  }, [testHex, testLabL, testLabA, testLabB, items])
 
   function handleOpenCreate() {
     setEditingId(null)
@@ -139,6 +159,20 @@ export default function Colors() {
           values.labA = Number(l.a.toFixed(2))
           values.labB = Number(l.b.toFixed(2))
         }
+      }
+
+      // Apply compensation to LAB if it was manually entered (or modified)
+      // We assume manual entry if:
+      // 1. It's a new color (editingId null) AND labL is defined
+      // 2. It's an edit AND labL is dirty
+      const isManualLab = (!editingId && values.labL !== undefined) || 
+                          (editingId && (form.isDirty('labL') || form.isDirty('labA') || form.isDirty('labB')))
+      
+      if (isManualLab && values.labL !== undefined && values.labA !== undefined && values.labB !== undefined) {
+         const comp = compensateLab({ L: values.labL, a: values.labA, b: values.labB })
+         values.labL = Number(comp.L.toFixed(2))
+         values.labA = Number(comp.a.toFixed(2))
+         values.labB = Number(comp.b.toFixed(2))
       }
 
       if (editingId) {
@@ -181,38 +215,122 @@ export default function Colors() {
             Nova Cor
           </Button>
         </Group>
-
         {/* Color Tester Panel */}
         <Paper withBorder p="md" radius="md" bg="gray.0">
           <Title order={4} mb="md" fw={500} c="dimmed">Colorímetro (Teste de Similaridade)</Title>
-          <Grid>
-            <Grid.Col span={{ base: 12, md: 4 }}>
-              <MantineColorInput 
-                label="Testar HEX" 
-                placeholder="#FF0000" 
-                value={testHex} 
-                onChange={setTestHex} 
-              />
+          <Grid align="center" gutter="xl">
+            <Grid.Col span={{ base: 12, md: 6 }}>
+              <Stack gap="xs">
+                <MantineColorInput 
+                  label="Testar HEX" 
+                  placeholder="#FF0000" 
+                  value={testHex} 
+                  onChange={(val) => {
+                    setTestHex(val)
+                    setTestLabL('')
+                    setTestLabA('')
+                    setTestLabB('')
+                  }} 
+                />
+                <Divider label="OU via LAB" labelPosition="center" />
+                <Group grow>
+                  <NumberInput 
+                    label="L" 
+                    placeholder="0-100" 
+                    min={0} max={100} decimalScale={2}
+                    value={testLabL}
+                    onChange={(val) => {
+                      setTestLabL(val)
+                      setTestHex('')
+                    }}
+                  />
+                  <NumberInput 
+                    label="a" 
+                    placeholder="-128-127" 
+                    decimalScale={2}
+                    value={testLabA}
+                    onChange={(val) => {
+                      setTestLabA(val)
+                      setTestHex('')
+                    }}
+                  />
+                  <NumberInput 
+                    label="b" 
+                    placeholder="-128-127" 
+                    decimalScale={2}
+                    value={testLabB}
+                    onChange={(val) => {
+                      setTestLabB(val)
+                      setTestHex('')
+                    }}
+                  />
+                </Group>
+
+                <Divider my="xs" variant="dashed" />
+                
+                <NumberInput
+                  label="Limiar de Tolerância (ΔE)"
+                  description="Diferença máxima aceitável. Padrão: 2.0"
+                  value={deltaThreshold}
+                  onChange={(val) => {
+                    const n = Number(val)
+                    if (!isNaN(n)) {
+                      setDeltaThreshold(n)
+                      settingsDb.setDeltaThreshold(n)
+                    }
+                  }}
+                  min={0.1}
+                  max={10}
+                  step={0.1}
+                  decimalScale={1}
+                  size="xs"
+                />
+              </Stack>
             </Grid.Col>
-            <Grid.Col span={{ base: 12, md: 8 }}>
+            <Grid.Col span={{ base: 12, md: 6 }}>
               {testResult && testResult.hit ? (
-                <Alert 
-                  icon={<IconPalette size={16} />} 
-                  title="Resultado da Análise"
-                  color={testResult.best < deltaThreshold ? 'red' : 'green'}
-                  variant="light"
-                >
-                  <Group>
-                    <Text size="sm">
-                      Mais próxima: <strong>{testResult.hit.name}</strong> (ΔE: {testResult.best.toFixed(2)})
-                    </Text>
-                    {testResult.best < deltaThreshold && (
-                      <Badge color="red">Conflito Provável</Badge>
-                    )}
-                  </Group>
-                </Alert>
+                <Group align="flex-start" wrap="nowrap">
+                   <Box 
+                      w={80} 
+                      h={80} 
+                      style={{ 
+                        backgroundColor: labToHex(testResult.lab), 
+                        borderRadius: 8, 
+                        border: '1px solid rgba(0,0,0,0.1)',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                      }} 
+                   />
+                   <Stack gap={4} style={{ flex: 1 }}>
+                      <Alert 
+                        icon={<IconPalette size={16} />} 
+                        title="Resultado da Análise"
+                        color={testResult.best < deltaThreshold ? 'red' : 'green'}
+                        variant="light"
+                        styles={{ root: { width: '100%' } }}
+                      >
+                        <Group>
+                          <Text size="sm">
+                            Mais próxima: <strong>{testResult.hit.name}</strong> (ΔE: {testResult.best.toFixed(2)})
+                          </Text>
+                          {testResult.best < deltaThreshold ? (
+                            <Badge color="red">Conflito (Já existe)</Badge>
+                          ) : (
+                            <Badge color="green">Nova Cor (Pode criar)</Badge>
+                          )}
+                        </Group>
+                        <Text size="xs" mt="xs" ff="monospace">
+                          Input LAB: {testResult.lab.L.toFixed(1)} / {testResult.lab.a.toFixed(1)} / {testResult.lab.b.toFixed(1)}
+                        </Text>
+                      </Alert>
+                   </Stack>
+                </Group>
               ) : (
-                <Text size="sm" c="dimmed" mt="lg">Digite um código HEX para verificar conflitos com cores existentes.</Text>
+                <Box py="md" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', opacity: 0.5 }}>
+                   <Stack align="center" gap="xs">
+                      <IconPalette size={32} />
+                      <Text size="sm" ta="center">Preencha os dados ao lado para verificar conflitos.</Text>
+                   </Stack>
+                </Box>
               )}
             </Grid.Col>
           </Grid>
@@ -274,6 +392,17 @@ export default function Colors() {
                         <Text size="sm" ff="monospace" c="dark">{item.sku || '—'}</Text>
                       </Stack>
                     </Group>
+
+                    {lab && (
+                      <Group mt={4}>
+                        <Stack gap={0}>
+                          <Text size="10px" c="dimmed" tt="uppercase" fw={700}>LAB</Text>
+                          <Text size="xs" ff="monospace" c="dimmed">
+                            L {lab.L.toFixed(1)} / a {lab.a.toFixed(1)} / b {lab.b.toFixed(1)}
+                          </Text>
+                        </Stack>
+                      </Group>
+                    )}
                   </Stack>
                 </Card>
               )
@@ -307,6 +436,27 @@ export default function Colors() {
               placeholder="#FF0000"
               {...form.getInputProps('hex')}
             />
+
+            {/* Preview Box */}
+            {form.values.hex && (
+              <Paper withBorder p="xs" radius="md" bg="gray.0">
+                <Group>
+                  <Box 
+                    w={40} 
+                    h={40} 
+                    style={{ 
+                      backgroundColor: form.values.hex, 
+                      borderRadius: 6, 
+                      border: '1px solid rgba(0,0,0,0.1)' 
+                    }} 
+                  />
+                  <Stack gap={0}>
+                    <Text size="xs" c="dimmed" tt="uppercase" fw={700}>Preview</Text>
+                    <Text size="sm" ff="monospace">{form.values.hex}</Text>
+                  </Stack>
+                </Group>
+              </Paper>
+            )}
 
             <Divider label="Avançado (LAB)" labelPosition="center" />
             

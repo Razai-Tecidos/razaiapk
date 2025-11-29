@@ -103,6 +103,39 @@ export function labHueAngle(LAB: LAB): number {
   return angle
 }
 
+// Calibração do Dispositivo (White Balance)
+// Valores lidos da tampa de calibração do dispositivo do usuário
+const DEVICE_WHITE_POINT = {
+  L: 96.78,
+  a: -0.48,
+  b: -0.09
+};
+
+// O alvo ideal (Referência Neutra)
+// Assumimos que a tampa de calibração é neutra (a=0, b=0).
+// Mantemos o L original do sensor para não distorcer a luminância (não forçar L=100).
+const TARGET_WHITE = {
+  L: 96.78,
+  a: 0,
+  b: 0
+};
+
+/**
+ * Aplica compensação de ponto branco (White Balance) em uma leitura LAB bruta.
+ * Ajusta os valores baseados na diferença entre o branco do dispositivo e o branco ideal.
+ */
+export function compensateLab(raw: LAB): LAB {
+  const deltaL = TARGET_WHITE.L - DEVICE_WHITE_POINT.L;
+  const deltaA = TARGET_WHITE.a - DEVICE_WHITE_POINT.a;
+  const deltaB = TARGET_WHITE.b - DEVICE_WHITE_POINT.b;
+
+  return {
+    L: Number(Math.min(100, Math.max(0, raw.L + deltaL)).toFixed(2)),
+    a: Number((raw.a + deltaA).toFixed(2)),
+    b: Number((raw.b + deltaB).toFixed(2))
+  };
+}
+
 // CIE76 metric not used; keeping only CIEDE2000 implementation.
 
 // Funções auxiliares para CIEDE2000

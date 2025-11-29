@@ -3,7 +3,7 @@ import { extractNeutralTexture } from '@/lib/recolor/textureExtractionNeutral'
 import { recolorTextureWithRazaiColor, type RazaiColor } from '@/lib/recolor/recolorEngine'
 import { linksDb } from '@/lib/db'
 import { adjustBrightness, adjustHue, adjustSaturation } from '@/lib/recolor/postAdjustments'
-import { hexToLab, labToHex } from '@/lib/color-utils'
+import { hexToLab, labToHex, compensateLab } from '@/lib/color-utils'
 import { DS } from '@/design-system/tokens'
 import { DSButton, Panel, Stack, Row, Label, Title } from '@/design-system/components'
 import { saveFile } from '@/lib/platform'
@@ -147,8 +147,12 @@ export function FabricColorPreview({ colors, linksForColors, tissueName, targetL
     const b = Math.max(-150, Math.min(150, Number(labB)))
     if (!Number.isFinite(L) || !Number.isFinite(a) || !Number.isFinite(b)) return
     setSelectedIndex(-1)
-    const hex = labToHex({ L, a, b })
-    recolorWith({ lab: { L, a, b }, hex })
+    
+    // Apply compensation (White Balance)
+    const comp = compensateLab({ L, a, b })
+    
+    const hex = labToHex(comp)
+    recolorWith({ lab: comp, hex })
   }, [baseTexture, labL, labA, labB, recolorWith])
 
   const onSelect = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
