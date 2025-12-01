@@ -1,5 +1,4 @@
-﻿import { neutralizeImageToGray } from '@/lib/neutralize-image'
-import React, { useEffect, useMemo, useState } from 'react'
+﻿import React, { useEffect, useMemo, useState } from 'react'
 import { Button } from '@mantine/core'
 import { db, patternsDb, patternLinksDb } from '@/lib/db'
 import { normalizeForSearch } from '@/lib/text'
@@ -308,16 +307,10 @@ export default function TecidoEstampaPage() {
                             const inputEl = e.currentTarget
                             const file = e.target.files && e.target.files[0]
                             if (!file) return
-                            // Neutralize to mid-gray before storing
-                            try {
-                              const canvas = await neutralizeImageToGray(file, 58)
-                              const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob(b => b ? resolve(b) : reject(new Error('toBlob failed')), 'image/png'))
-                              const normFile = new File([blob], file.name.replace(/\.[^.]+$/, '') + '-neutralized.png', { type: 'image/png' })
-                              await patternLinksDb.setImageFull(l.id, normFile)
-                            } catch (err) {
-                              // fallback: store original if normalization fails
-                              await patternLinksDb.setImageFull(l.id, file)
-                            }
+                            
+                            // Store original image directly
+                            await patternLinksDb.setImageFull(l.id, file)
+                            
                             await refreshLinks()
                             try { if (inputEl) inputEl.value = '' } catch {}
                           }}
