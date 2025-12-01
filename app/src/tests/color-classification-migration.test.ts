@@ -56,7 +56,7 @@ describe('Color Classification Migration', () => {
       expect(familyCodeFor('Verde')).toBe('VD')
       expect(familyCodeFor('Azul')).toBe('AZ')
       expect(familyCodeFor('Roxo')).toBe('RX')
-      expect(familyCodeFor('Rosa')).toBe('MG')
+      expect(familyCodeFor('Rosa')).toBe('RS')
       expect(familyCodeFor('Bordô')).toBe('BO')
       expect(familyCodeFor('Marrom')).toBe('MR')
       expect(familyCodeFor('Bege')).toBe('BG')

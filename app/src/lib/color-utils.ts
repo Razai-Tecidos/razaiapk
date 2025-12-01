@@ -455,7 +455,7 @@ const FAMILY_CODES: Record<string, string> = {
   Verde: 'VD', // evitar conflito com Vermelho
   Azul: 'AZ',
   Roxo: 'RX',
-  Rosa: 'MG', // manter código para compatibilidade com nomes antigos (Magenta)
+  Rosa: 'RS',
   Bordô: 'BO',
   Marrom: 'MR',
   Bege: 'BG',
