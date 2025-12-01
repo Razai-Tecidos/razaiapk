@@ -240,7 +240,7 @@ export function inferFamilyFrom({ hex, labL, labA, labB }: { hex?: string; labL?
   const chroma = Math.sqrt(a*a + b*b)
   const isLowChroma = chroma < 5
   if (isLowChroma) {
-    if (light >= 0.9) return 'Branco'
+    if (light >= 0.91) return 'Branco' // Ajustado para L >= 91 (inclui 91.80)
     if (light <= 0.1) return 'Preto'
     return 'Cinza'
   }
