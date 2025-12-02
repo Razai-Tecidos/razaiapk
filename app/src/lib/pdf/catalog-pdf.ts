@@ -50,36 +50,16 @@ async function generateViaWeb({ items, config, filtersApplied }: GenerateCatalog
     if (!dataUrl) return null
     if (dimCache.has(dataUrl)) return dimCache.get(dataUrl)!
     try {
-      let base64Data: string;
-      
-      if (isTauri()) {
-        // Use Tauri HTTP plugin to bypass CORS
-        try {
-          const { fetch } = await import('@tauri-apps/plugin-http');
-          const response = await fetch(dataUrl);
-          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-          const blob = await response.blob();
-          base64Data = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-          });
-        } catch (tauriErr) {
-          console.warn('Tauri HTTP fetch failed, falling back to native fetch:', tauriErr);
-          // Fallback to native fetch if plugin fails (e.g. dev mode without plugin)
-          const response = await window.fetch(dataUrl);
-          const blob = await response.blob();
-          base64Data = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-          });
-        }
-      } else {
-        // Web mode
-        const response = await fetch(dataUrl);
+      let base64Data: string | null = null;
+      let errors: string[] = [];
+
+      // Attempt 1: Try Tauri HTTP plugin (bypasses CORS in WebView)
+      // We attempt this regardless of isTauri() check to avoid false negatives,
+      // relying on the try/catch to fall back if the plugin is unavailable or fails.
+      try {
+        const { fetch } = await import('@tauri-apps/plugin-http');
+        const response = await fetch(dataUrl, { method: 'GET' });
+        if (!response.ok) throw new Error(`Status ${response.status}`);
         const blob = await response.blob();
         base64Data = await new Promise<string>((resolve, reject) => {
           const reader = new FileReader();
@@ -87,6 +67,32 @@ async function generateViaWeb({ items, config, filtersApplied }: GenerateCatalog
           reader.onerror = reject;
           reader.readAsDataURL(blob);
         });
+      } catch (tauriErr) {
+        // console.debug('Tauri HTTP plugin fetch failed (normal in Web mode):', tauriErr);
+        errors.push(String(tauriErr));
+      }
+
+      // Attempt 2: Fallback to native window.fetch (Web mode)
+      if (!base64Data) {
+        try {
+          const response = await window.fetch(dataUrl);
+          if (!response.ok) throw new Error(`Status ${response.status}`);
+          const blob = await response.blob();
+          base64Data = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+        } catch (webErr) {
+          console.warn('Native fetch failed:', webErr);
+          errors.push(String(webErr));
+        }
+      }
+
+      if (!base64Data) {
+        console.warn('Failed to load image via both strategies:', dataUrl, errors);
+        return null;
       }
 
       const img = await new Promise<HTMLImageElement>((resolve, reject) => {
@@ -221,8 +227,14 @@ async function generateViaWeb({ items, config, filtersApplied }: GenerateCatalog
           const offX = cellX + 2 + (maxSide - drawW) / 2
           const offY = cellY + 2 + (maxSide - drawH) / 2
           try {
-            doc.addImage(dims.data, 'PNG', offX, offY, drawW, drawH)
-          } catch {
+            // Detect format from data URL (e.g. data:image/jpeg;base64,...)
+            const match = dims.data.match(/^data:image\/(\w+);base64,/)
+            const format = match ? match[1].toUpperCase() : 'PNG'
+            // Handle JPG/JPEG alias
+            const fmt = format === 'JPG' ? 'JPEG' : format
+            doc.addImage(dims.data, fmt, offX, offY, drawW, drawH)
+          } catch (err) {
+            console.error('[catalog-pdf] addImage failed for color:', c.colorSku, err)
             doc.setFillColor(c.hex || '#ccc')
             doc.roundedRect(cellX + 2, cellY + 2, maxSide, maxSide, 4, 4, 'F')
           }
@@ -308,8 +320,13 @@ async function generateViaWeb({ items, config, filtersApplied }: GenerateCatalog
             const offX = cellX + 2 + (maxSide - drawW) / 2
             const offY = cellY + 2 + (maxSide - drawH) / 2
             try {
-              doc.addImage(dims.data, 'PNG', offX, offY, drawW, drawH)
-            } catch {
+              // Detect format from data URL
+              const match = dims.data.match(/^data:image\/(\w+);base64,/)
+              const format = match ? match[1].toUpperCase() : 'PNG'
+              const fmt = format === 'JPG' ? 'JPEG' : format
+              doc.addImage(dims.data, fmt, offX, offY, drawW, drawH)
+            } catch (err) {
+              console.error('[catalog-pdf] addImage failed for pattern:', p.patternSku, err)
               doc.setFillColor('#ddd')
               doc.roundedRect(cellX + 2, cellY + 2, maxSide, maxSide, 4, 4, 'F')
             }

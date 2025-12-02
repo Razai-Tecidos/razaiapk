@@ -21,7 +21,8 @@ export function getRuntime(): RuntimeFlavor {
 
   const w = window as any
   const ua = (window.navigator && window.navigator.userAgent) ? window.navigator.userAgent : ''
-  const hasTauri = !!(w.__TAURI__ || w.__TAURI_INTERNALS__)
+  // Check for various Tauri indicators (v1 and v2)
+  const hasTauri = !!(w.__TAURI__ || w.__TAURI_INTERNALS__ || w.__TAURI_IPC__)
   const hasCapacitor = !!(w.Capacitor || (ua && ua.includes('Capacitor'))) // forward-compatible placeholder
 
   if (hasTauri) {
