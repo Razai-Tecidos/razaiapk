@@ -7,6 +7,7 @@ import type { Pattern, PatternInput } from '@/types/pattern'
 import type { TecidoEstampa, TecidoEstampaView } from '@/types/tecidoEstampa'
 import { DEFAULT_DE_THRESHOLD } from '@/lib/settings'
 import * as idb from './indexeddb'
+import { resizeImage } from '../image-utils'
 
 export type FamilyStat = {
   familyName: string
@@ -702,16 +703,19 @@ export const linksDb = {
     if (error) throw error
   },
   async setImageFull(id: string, file: File) {
+    // Otimização: Redimensionar imagem antes do upload
+    const optimizedFile = await resizeImage(file, { maxWidth: 1024, maxHeight: 1024, quality: 0.8 })
+
     if (useLocalDb) {
-      await idb.updateTecidoCorImageFull(id, file)
+      await idb.updateTecidoCorImageFull(id, optimizedFile)
       return
     }
-    const ext = file.name.split('.').pop()
+    const ext = 'jpg' // Sempre converte para jpg
     const path = `${id}.${ext}`
     
     const { error: uploadError } = await supabase.storage
       .from('tissue-images')
-      .upload(path, file, { upsert: true })
+      .upload(path, optimizedFile, { upsert: true, contentType: 'image/jpeg' })
       
     if (uploadError) throw uploadError
     
@@ -818,16 +822,19 @@ export const patternLinksDb = {
     if (error) throw error
   },
   async setImageFull(id: string, file: File) {
+    // Otimização: Redimensionar imagem antes do upload
+    const optimizedFile = await resizeImage(file, { maxWidth: 1024, maxHeight: 1024, quality: 0.8 })
+
     if (useLocalDb) {
-      await idb.updateTecidoEstampaImageFull(id, file)
+      await idb.updateTecidoEstampaImageFull(id, optimizedFile)
       return
     }
-    const ext = file.name.split('.').pop()
+    const ext = 'jpg' // Sempre converte para jpg
     const path = `${id}.${ext}`
     
     const { error: uploadError } = await supabase.storage
       .from('pattern-images')
-      .upload(path, file, { upsert: true })
+      .upload(path, optimizedFile, { upsert: true, contentType: 'image/jpeg' })
       
     if (uploadError) throw uploadError
     
