@@ -44,22 +44,33 @@ async function generateViaWeb({ items, config, filtersApplied }: GenerateCatalog
   const startNewPage = () => { doc.addPage(); pageNum++ }
 
   // Pré-carrega dimensões das thumbnails para preservar aspect ratio.
-  // Mapa dataURL -> { w, h }.
-  const dimCache = new Map<string, { w: number; h: number }>()
+  // Mapa dataURL -> { w, h, data }.
+  const dimCache = new Map<string, { w: number; h: number; data: string }>()
   async function ensureDims(dataUrl?: string) {
     if (!dataUrl) return null
     if (dimCache.has(dataUrl)) return dimCache.get(dataUrl)!
     try {
+      // Fetch image data explicitly to avoid jsPDF internal loading issues in Tauri
+      const response = await fetch(dataUrl)
+      const blob = await response.blob()
+      const base64Data = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onloadend = () => resolve(reader.result as string)
+        reader.onerror = reject
+        reader.readAsDataURL(blob)
+      })
+
       const img = await new Promise<HTMLImageElement>((resolve, reject) => {
         const im = new Image()
         im.onload = () => resolve(im)
         im.onerror = () => reject(new Error('img load fail'))
-        im.src = dataUrl
+        im.src = base64Data
       })
-      const dims = { w: img.naturalWidth || img.width, h: img.naturalHeight || img.height }
+      const dims = { w: img.naturalWidth || img.width, h: img.naturalHeight || img.height, data: base64Data }
       dimCache.set(dataUrl, dims)
       return dims
-    } catch {
+    } catch (e) {
+      console.warn('Failed to load image for PDF:', dataUrl, e)
       return null
     }
   }
@@ -172,7 +183,7 @@ async function generateViaWeb({ items, config, filtersApplied }: GenerateCatalog
       const imgData = c.imageThumb
       if (imgData) {
         const dims = dimCache.get(imgData)
-        if (dims) {
+        if (dims && dims.data) {
           const maxSide = thumbSize - 4
           const scale = Math.min(maxSide / dims.w, maxSide / dims.h)
             || 1
@@ -181,19 +192,15 @@ async function generateViaWeb({ items, config, filtersApplied }: GenerateCatalog
           const offX = cellX + 2 + (maxSide - drawW) / 2
           const offY = cellY + 2 + (maxSide - drawH) / 2
           try {
-            doc.addImage(imgData as any, 'PNG', offX, offY, drawW, drawH)
+            doc.addImage(dims.data, 'PNG', offX, offY, drawW, drawH)
           } catch {
             doc.setFillColor(c.hex || '#ccc')
             doc.roundedRect(cellX + 2, cellY + 2, maxSide, maxSide, 4, 4, 'F')
           }
         } else {
-          // Falha ao obter dimensões: desenha fallback simples
-          try {
-            doc.addImage(imgData as any, 'PNG', cellX + 2, cellY + 2, thumbSize - 4, thumbSize - 4)
-          } catch {
-            doc.setFillColor(c.hex || '#ccc')
-            doc.roundedRect(cellX + 2, cellY + 2, thumbSize - 4, thumbSize - 4, 4, 4, 'F')
-          }
+          // Falha ao obter dimensões ou dados: desenha fallback cor
+          doc.setFillColor(c.hex || '#ccc')
+          doc.roundedRect(cellX + 2, cellY + 2, thumbSize - 4, thumbSize - 4, 4, 4, 'F')
         }
       } else {
         doc.setFillColor(c.hex || '#eee')
@@ -264,7 +271,7 @@ async function generateViaWeb({ items, config, filtersApplied }: GenerateCatalog
         const imgData = p.imageThumb
         if (imgData) {
           const dims = dimCache.get(imgData)
-          if (dims) {
+          if (dims && dims.data) {
             const maxSide = thumbSize - 4
             const scale = Math.min(maxSide / dims.w, maxSide / dims.h) || 1
             const drawW = Math.min(maxSide, dims.w * scale)
@@ -272,18 +279,14 @@ async function generateViaWeb({ items, config, filtersApplied }: GenerateCatalog
             const offX = cellX + 2 + (maxSide - drawW) / 2
             const offY = cellY + 2 + (maxSide - drawH) / 2
             try {
-              doc.addImage(imgData as any, 'PNG', offX, offY, drawW, drawH)
+              doc.addImage(dims.data, 'PNG', offX, offY, drawW, drawH)
             } catch {
               doc.setFillColor('#ddd')
               doc.roundedRect(cellX + 2, cellY + 2, maxSide, maxSide, 4, 4, 'F')
             }
           } else {
-            try {
-              doc.addImage(imgData as any, 'PNG', cellX + 2, cellY + 2, thumbSize - 4, thumbSize - 4)
-            } catch {
-              doc.setFillColor('#ddd')
-              doc.roundedRect(cellX + 2, cellY + 2, thumbSize - 4, thumbSize - 4, 4, 4, 'F')
-            }
+            doc.setFillColor('#ddd')
+            doc.roundedRect(cellX + 2, cellY + 2, thumbSize - 4, thumbSize - 4, 4, 4, 'F')
           }
         } else {
           doc.setFillColor('#eee')
