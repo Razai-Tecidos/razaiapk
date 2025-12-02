@@ -2,11 +2,11 @@ import { GenerateCatalogPdfParams, CatalogPdfResult } from '@/types/catalog'
 import { isTauri, saveFile, showSaveDialog } from '@/lib/platform'
 import { LAYOUT, line, computeGrid, footerY, measureText, LH_SMALL, ensureSpace } from './layout'
 
-// Strategy keys
-export type PdfStrategy = 'web-basic' | 'tauri-rust'
-
 // Public API
-export async function generateCatalogPdf(params: GenerateCatalogPdfParams, strategy?: PdfStrategy): Promise<CatalogPdfResult> {
+export async function generateCatalogPdf(
+  params: GenerateCatalogPdfParams,
+  strategy?: PdfStrategy
+): Promise<CatalogPdfResult> {
   console.debug('[catalog-pdf] generateCatalogPdf start, isTauri=', isTauri())
   const web = await generateViaWeb(params)
   const saved = await tryTauriSave(web)
@@ -15,10 +15,12 @@ export async function generateCatalogPdf(params: GenerateCatalogPdfParams, strat
   return saved || web
 }
 
-async function generateViaWeb({ items, config, filtersApplied }: GenerateCatalogPdfParams): Promise<CatalogPdfResult> {
-  const [{ jsPDF }] = await Promise.all([
-    import('jspdf') as any,
-  ])
+async function generateViaWeb({
+  items,
+  config,
+  filtersApplied,
+}: GenerateCatalogPdfParams): Promise<CatalogPdfResult> {
+  const [{ jsPDF }] = await Promise.all([import('jspdf') as any])
 
   const doc = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' })
   const pageW = doc.internal.pageSize.getWidth()
@@ -39,91 +41,126 @@ async function generateViaWeb({ items, config, filtersApplied }: GenerateCatalog
 
   let pageNum = 1
   // addPage: usado para iniciar um novo tecido (capa já conta como página 1 se presente)
-  const addPage = () => { if (pageNum > 1) doc.addPage(); pageNum++ }
+  const addPage = () => {
+    if (pageNum > 1) doc.addPage()
+    pageNum++
+  }
   // startNewPage: continuação do mesmo tecido (overflow de grid de cores/estampas)
-  const startNewPage = () => { doc.addPage(); pageNum++ }
+  const startNewPage = () => {
+    doc.addPage()
+    pageNum++
+  }
 
   // Pré-carrega dimensões das thumbnails para preservar aspect ratio.
   // Mapa dataURL -> { w, h, data }.
-  const dimCache = new Map<string, { w: number; h: number; data: string }>()
+  const dimCache = new Map<string, { w: number; h: number; data: string; error?: string }>()
+  
   async function ensureDims(dataUrl?: string) {
     if (!dataUrl) return null
     if (dimCache.has(dataUrl)) return dimCache.get(dataUrl)!
+    
+    await ensureDims(dataUrl)
+
     try {
       let base64Data: string | null = null;
       let errors: string[] = [];
 
-      // Attempt 1: Try Tauri HTTP plugin (bypasses CORS in WebView)
-      // We attempt this regardless of isTauri() check to avoid false negatives,
-      // relying on the try/catch to fall back if the plugin is unavailable or fails.
-      try {
-        const { fetch } = await import('@tauri-apps/plugin-http');
-        const response = await fetch(dataUrl, { method: 'GET' });
-        if (!response.ok) throw new Error(`Status ${response.status}`);
-        const blob = await response.blob();
-        base64Data = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.onerror = reject;
-          reader.readAsDataURL(blob);
-        });
-      } catch (tauriErr) {
-        // console.debug('Tauri HTTP plugin fetch failed (normal in Web mode):', tauriErr);
-        errors.push(String(tauriErr));
+      // Optimization 1: Direct Data URL usage (no fetch needed)
+      if (dataUrl.startsWith('data:')) {
+        base64Data = dataUrl;
+      } 
+      // Optimization 2: Local File Path (Tauri only) - read directly from FS
+      else if (isTauri() && !dataUrl.startsWith('http://') && !dataUrl.startsWith('https://')) {
+         try {
+           const fs = await import('@tauri-apps/plugin-fs');
+           const data = await fs.readFile(dataUrl);
+           const b64 = uint8ArrayToBase64(data);
+           // Guess mime type from extension
+           const ext = dataUrl.split('.').pop()?.toLowerCase() || 'png';
+           const mime = (ext === 'jpg' || ext === 'jpeg') ? 'image/jpeg' : 'image/png';
+           base64Data = `data:${mime};base64,${b64}`;
+         } catch (fsErr: any) {
+           const msg = `Failed to read local file via plugin-fs: ${dataUrl} - ${fsErr?.message || fsErr}`
+           console.warn(msg);
+           errors.push(String(fsErr));
+         }
       }
 
-      // Attempt 2: Fallback to native window.fetch (Web mode)
+      // Attempt 3: Tauri HTTP plugin (only if not already resolved)
       if (!base64Data) {
-        try {
-          const response = await window.fetch(dataUrl);
-          if (!response.ok) throw new Error(`Status ${response.status}`);
-          const blob = await response.blob();
-          base64Data = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-          });
-        } catch (webErr) {
-          console.warn('Native fetch failed:', webErr);
-          errors.push(String(webErr));
-        }
+         try {
+           const { fetch } = await import('@tauri-apps/plugin-http');
+           const response = await fetch(dataUrl, { method: 'GET' });
+           if (!response.ok) throw new Error(`Status ${response.status}`);
+           const blob = await response.blob();
+           base64Data = await new Promise<string>((resolve, reject) => {
+             const reader = new FileReader();
+             reader.onloadend = () => resolve(reader.result as string);
+             reader.onerror = reject;
+             reader.readAsDataURL(blob);
+           });
+         } catch (tauriErr) {
+           errors.push(String(tauriErr));
+         }
+      }
+
+      // Attempt 4: Fallback to native window.fetch (Web mode or if Tauri plugin failed)
+      if (!base64Data) {
+         try {
+           const response = await window.fetch(dataUrl);
+           if (!response.ok) throw new Error(`Status ${response.status}`);
+           const blob = await response.blob();
+           base64Data = await new Promise<string>((resolve, reject) => {
+             const reader = new FileReader();
+             reader.onloadend = () => resolve(reader.result as string);
+             reader.onerror = reject;
+             reader.readAsDataURL(blob);
+           });
+         } catch (webErr) {
+           console.warn('Native fetch failed:', webErr);
+           errors.push(String(webErr));
+         }
       }
 
       if (!base64Data) {
-        console.warn('Failed to load image via both strategies:', dataUrl, errors);
-        return null;
+        console.warn('Failed to load image via all strategies:', dataUrl, errors);
+        const errResult = { w: 100, h: 100, data: null as any, error: errors.join(' | ') }
+        dimCache.set(dataUrl, errResult)
+        return errResult
       }
 
       const img = await new Promise<HTMLImageElement>((resolve, reject) => {
         const im = new Image()
         im.onload = () => resolve(im)
         im.onerror = () => reject(new Error('img load fail'))
-        im.src = base64Data
+        im.src = base64Data!
       })
       const dims = { w: img.naturalWidth || img.width, h: img.naturalHeight || img.height, data: base64Data }
       dimCache.set(dataUrl, dims)
       return dims
     } catch (e) {
       console.warn('Failed to load image for PDF:', dataUrl, e)
-      return null
+      const errResult = { w: 100, h: 100, data: null as any, error: String(e) }
+      dimCache.set(dataUrl, errResult)
+      return errResult
     }
   }
 
   // Coleta única de todos os thumbs (cores + estampas) para paralelizar carregamento de dimensões.
   const allThumbs: string[] = []
   for (const it of items) {
-    for (const c of it.colors) if (c.imageThumb && !dimCache.has(c.imageThumb)) allThumbs.push(c.imageThumb)
-    for (const p of it.patterns) if (p.imageThumb && !dimCache.has(p.imageThumb)) allThumbs.push(p.imageThumb)
+    for (const c of it.colors)
+      if (c.imageThumb && !dimCache.has(c.imageThumb)) allThumbs.push(c.imageThumb)
+    for (const p of it.patterns)
+      if (p.imageThumb && !dimCache.has(p.imageThumb)) allThumbs.push(p.imageThumb)
   }
   await Promise.all(allThumbs.map(t => ensureDims(t)))
-
-  // Cover explicitly removed: ignore includeCover flag (legacy). Start directly with fabrics.
 
   // Fabric pages
   let firstFabric = true
   for (const item of items) {
-    if (!firstFabric) addPage(); else firstFabric = false
+    if (!firstFabric) addPage()
+    else firstFabric = false
     doc.setFontSize(20)
     doc.setTextColor(30)
     doc.text(item.tissueName, margin, margin)
@@ -191,7 +228,7 @@ async function generateViaWeb({ items, config, filtersApplied }: GenerateCatalog
       let cellY = y + row * (cellHeight + gapY)
       // Row-level check: if starting new row and it would overflow, break before drawing any cell in that row
       if (col === 0 && cellY + cellHeight + allowance > pageH) {
-        doc.addPage(); pageNum++
+        startNewPage()
         doc.setFontSize(14)
         doc.setTextColor(80)
         doc.text(`${item.tissueName} (continuação)`, margin, M.top)
@@ -202,7 +239,7 @@ async function generateViaWeb({ items, config, filtersApplied }: GenerateCatalog
         cellY = y + row * (cellHeight + gapY)
       } else if (col > 0 && cellY + cellHeight + allowance > pageH) {
         // mid-row overflow: move entire row to next page (cells already drawn this row stay previous page)
-        doc.addPage(); pageNum++
+        startNewPage()
         doc.setFontSize(14)
         doc.setTextColor(80)
         doc.text(`${item.tissueName} (continuação)`, margin, M.top)
@@ -220,8 +257,7 @@ async function generateViaWeb({ items, config, filtersApplied }: GenerateCatalog
         const dims = dimCache.get(imgData)
         if (dims && dims.data) {
           const maxSide = thumbSize - 4
-          const scale = Math.min(maxSide / dims.w, maxSide / dims.h)
-            || 1
+          const scale = Math.min(maxSide / dims.w, maxSide / dims.h) || 1
           const drawW = Math.min(maxSide, dims.w * scale)
           const drawH = Math.min(maxSide, dims.h * scale)
           const offX = cellX + 2 + (maxSide - drawW) / 2
@@ -239,9 +275,20 @@ async function generateViaWeb({ items, config, filtersApplied }: GenerateCatalog
             doc.roundedRect(cellX + 2, cellY + 2, maxSide, maxSide, 4, 4, 'F')
           }
         } else {
-          // Falha ao obter dimensões ou dados: desenha fallback cor
+          // Falha ao obter dimensões ou dados: desenha fallback com texto de debug
           doc.setFillColor(c.hex || '#ccc')
           doc.roundedRect(cellX + 2, cellY + 2, thumbSize - 4, thumbSize - 4, 4, 4, 'F')
+          
+          // DEBUG: Print dataUrl snippet to PDF
+          doc.setFontSize(8)
+          doc.setTextColor(0, 0, 0) // Black
+          const debugText = (imgData || 'null').substring(0, 50)
+          const errText = (dims?.error || '').substring(0, 50)
+          doc.text(debugText, cellX + 4, cellY + 10, { maxWidth: thumbSize - 8 })
+          if (errText) {
+             doc.setTextColor(255, 0, 0) // Red
+             doc.text(errText, cellX + 4, cellY + 20, { maxWidth: thumbSize - 8 })
+          }
         }
       } else {
         doc.setFillColor(c.hex || '#eee')
@@ -255,7 +302,10 @@ async function generateViaWeb({ items, config, filtersApplied }: GenerateCatalog
       const nameYStart = cellY + thumbSize + line(2.5) // small offset from image
       let lineOffset = 0
       for (const ln of mName.lines) {
-        doc.text(ln, cellX + thumbSize / 2, nameYStart + lineOffset, { align: 'center', maxWidth: thumbSize - 4 })
+        doc.text(ln, cellX + thumbSize / 2, nameYStart + lineOffset, {
+          align: 'center',
+          maxWidth: thumbSize - 4,
+        })
         lineOffset += baseLabelLineHeight
       }
       // SKU code below
@@ -265,11 +315,15 @@ async function generateViaWeb({ items, config, filtersApplied }: GenerateCatalog
       doc.text(code, cellX + thumbSize / 2, skuY, { align: 'center' })
 
       col++
-      if (col >= cols) { col = 0; row++ }
+      if (col >= cols) {
+        col = 0
+        row++
+      }
     }
     // Advance Y below colors grid
     const colorsRows = row + (col > 0 ? 1 : 0)
-    const gridBottomY = y + (colorsRows > 0 ? (colorsRows - 1) * (cellHeight + gapY) + cellHeight : 0)
+    const gridBottomY =
+      y + (colorsRows > 0 ? (colorsRows - 1) * (cellHeight + gapY) + cellHeight : 0)
     let currentY = gridBottomY + (colorsRows ? 32 : 0)
 
     // Patterns section (if any)
@@ -281,28 +335,31 @@ async function generateViaWeb({ items, config, filtersApplied }: GenerateCatalog
       doc.text('Estampas', margin, currentY)
       currentY += 18
       // reset grid state for patterns
-      col = 0; row = 0
+      col = 0
+      row = 0
       for (let i = 0; i < item.patterns.length; i++) {
         const p = item.patterns[i]
         const allowance = LAYOUT.footerHeight + line(2)
         let cellX = offsetX + col * (thumbSize + gapX)
         let cellY = currentY + row * (cellHeight + gapY)
         if (col === 0 && cellY + cellHeight + allowance > pageH) {
-          doc.addPage(); pageNum++
+          startNewPage()
           doc.setFontSize(14)
           doc.setTextColor(80)
           doc.text(`${item.tissueName} (continuação)`, margin, M.top)
           currentY = M.top + 30
-          col = 0; row = 0
+          col = 0
+          row = 0
           cellX = offsetX + col * (thumbSize + gapX)
           cellY = currentY + row * (cellHeight + gapY)
         } else if (col > 0 && cellY + cellHeight + allowance > pageH) {
-          doc.addPage(); pageNum++
+          startNewPage()
           doc.setFontSize(14)
           doc.setTextColor(80)
           doc.text(`${item.tissueName} (continuação)`, margin, M.top)
           currentY = M.top + 30
-          col = 0; row = 0
+          col = 0
+          row = 0
           cellX = offsetX + col * (thumbSize + gapX)
           cellY = currentY + row * (cellHeight + gapY)
         }
@@ -333,6 +390,17 @@ async function generateViaWeb({ items, config, filtersApplied }: GenerateCatalog
           } else {
             doc.setFillColor('#ddd')
             doc.roundedRect(cellX + 2, cellY + 2, thumbSize - 4, thumbSize - 4, 4, 4, 'F')
+            
+            // DEBUG: Print dataUrl snippet to PDF
+            doc.setFontSize(8)
+            doc.setTextColor(0, 0, 0)
+            const debugText = (imgData || 'null').substring(0, 50)
+            const errText = (dims?.error || '').substring(0, 50)
+            doc.text(debugText, cellX + 4, cellY + 10, { maxWidth: thumbSize - 8 })
+            if (errText) {
+               doc.setTextColor(255, 0, 0)
+               doc.text(errText, cellX + 4, cellY + 20, { maxWidth: thumbSize - 8 })
+            }
           }
         } else {
           doc.setFillColor('#eee')
@@ -341,12 +409,23 @@ async function generateViaWeb({ items, config, filtersApplied }: GenerateCatalog
         // Pattern label
         doc.setFontSize(8.5)
         doc.setTextColor(30)
-        doc.text(p.patternName, cellX + thumbSize / 2, cellY + thumbSize + 10, { align: 'center', maxWidth: thumbSize - 4 })
+        doc.text(p.patternName, cellX + thumbSize / 2, cellY + thumbSize + 10, {
+          align: 'center',
+          maxWidth: thumbSize - 4,
+        })
         doc.setFontSize(7)
         doc.setTextColor(110)
-        doc.text(`${item.tissueSku}-${p.patternSku}`, cellX + thumbSize / 2, cellY + thumbSize + 20, { align: 'center' })
+        doc.text(
+          `${item.tissueSku}-${p.patternSku}`,
+          cellX + thumbSize / 2,
+          cellY + thumbSize + 20,
+          { align: 'center' }
+        )
         col++
-        if (col >= cols) { col = 0; row++ }
+        if (col >= cols) {
+          col = 0
+          row++
+        }
       }
     }
     footer(pageNum)
@@ -397,7 +476,7 @@ async function generateViaWeb({ items, config, filtersApplied }: GenerateCatalog
       filtersApplied,
       version: config?.version,
       author: config?.author,
-    }
+    },
   }
 }
 
@@ -406,7 +485,10 @@ async function generateViaTauri(_params: GenerateCatalogPdfParams): Promise<Cata
 }
 
 async function tryTauriSave(res: CatalogPdfResult): Promise<CatalogPdfResult | null> {
-  if (!res.blob) { console.debug('[catalog-pdf] no blob to save'); return null }
+  if (!res.blob) {
+    console.debug('[catalog-pdf] no blob to save')
+    return null
+  }
   if (!isTauri()) {
     console.debug('[catalog-pdf] skipping native save (not in Tauri environment)')
     return null
@@ -417,7 +499,8 @@ async function tryTauriSave(res: CatalogPdfResult): Promise<CatalogPdfResult | n
     try {
       const lastDir = localStorage.getItem('catalogLastDir')
       if (lastDir) {
-        const sep = lastDir.endsWith('\\') || lastDir.endsWith('/') ? '' : (lastDir.includes('\\') ? '\\' : '/')
+        const sep =
+          lastDir.endsWith('\\') || lastDir.endsWith('/') ? '' : lastDir.includes('\\') ? '\\' : '/'
         suggested = lastDir + sep + defaultName
       }
     } catch {}
@@ -437,7 +520,12 @@ async function tryTauriSave(res: CatalogPdfResult): Promise<CatalogPdfResult | n
 
     if (!saveResult.success) {
       console.warn('[catalog-pdf] native save failed via platform service', saveResult)
-      return { ...res, outputPath: undefined, error: 'Falha ao salvar nativamente.', nativeSaveAttempted: true }
+      return {
+        ...res,
+        outputPath: undefined,
+        error: 'Falha ao salvar nativamente.',
+        nativeSaveAttempted: true,
+      }
     }
 
     if (saveResult.fallbackUsed) {
@@ -474,7 +562,11 @@ async function tryTauriSave(res: CatalogPdfResult): Promise<CatalogPdfResult | n
 // Manual test helpers for debugging in Tauri devtools
 export async function debugTestDialog(): Promise<string | null> {
   try {
-    const res = await showSaveDialog({ suggestedName: 'teste-dialog.txt', filters: [{ name: 'Texto', extensions: ['txt'] }], title: 'Salvar arquivo de teste' })
+    const res = await showSaveDialog({
+      suggestedName: 'teste-dialog.txt',
+      filters: [{ name: 'Texto', extensions: ['txt'] }],
+      title: 'Salvar arquivo de teste',
+    })
     console.debug('[catalog-pdf] debugTestDialog result=', res)
     if (res.cancelled) return null
     return res.path || null
@@ -516,4 +608,13 @@ export async function debugWriteFile(path: string, content: string): Promise<boo
     defaultPath: path,
   })
   return !!res.success
+}
+
+function uint8ArrayToBase64(bytes: Uint8Array): string {
+  let binary = ''
+  const len = bytes.byteLength
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(bytes[i])
+  }
+  return window.btoa(binary)
 }

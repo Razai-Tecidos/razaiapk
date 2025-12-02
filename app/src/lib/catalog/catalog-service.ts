@@ -29,7 +29,7 @@ export async function buildCatalogItems(force = false): Promise<CatalogItem[]> {
       skuFilho: l.skuFilho,
       status: l.status,
       createdAt: l.createdAt,
-      imageThumb: l.imageThumb,
+      imageThumb: l.imageThumb || l.image,
       imagePath: l.imagePath,
     })
     groupedColors.set(l.tissueId, arr)
@@ -45,7 +45,7 @@ export async function buildCatalogItems(force = false): Promise<CatalogItem[]> {
       skuFilho: pl.skuFilho,
       status: pl.status,
       createdAt: pl.createdAt,
-      imageThumb: pl.imageThumb,
+      imageThumb: pl.imageThumb || pl.image,
       imagePath: pl.imagePath,
     })
     groupedPatterns.set(pl.tissueId, arr)
