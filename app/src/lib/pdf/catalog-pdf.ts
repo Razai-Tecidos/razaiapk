@@ -4,8 +4,7 @@ import { LAYOUT, line, computeGrid, footerY, measureText, LH_SMALL, ensureSpace 
 
 // Public API
 export async function generateCatalogPdf(
-  params: GenerateCatalogPdfParams,
-  strategy?: PdfStrategy
+  params: GenerateCatalogPdfParams
 ): Promise<CatalogPdfResult> {
   console.debug('[catalog-pdf] generateCatalogPdf start, isTauri=', isTauri())
   const web = await generateViaWeb(params)
@@ -28,15 +27,69 @@ async function generateViaWeb({
   const M = LAYOUT.margin
   const margin = M.left // keep existing var name references
 
+  // --- Visual Helpers ---
+
+  function drawCard(x: number, y: number, w: number, h: number) {
+    // Shadow
+    doc.setFillColor(230) // Light gray
+    doc.roundedRect(x + 2, y + 2, w, h, 4, 4, 'F')
+    // Card Body
+    doc.setFillColor(255)
+    doc.setDrawColor(220)
+    doc.roundedRect(x, y, w, h, 4, 4, 'FD')
+  }
+
+  function drawPageHeader(title: string, subtitle?: string) {
+    // Brand Top-Left
+    doc.setFontSize(8)
+    doc.setTextColor(180, 160, 100) // Gold-ish accent
+    doc.text('RAZAI TECIDOS', margin, M.top - 20)
+    
+    // Title
+    doc.setFontSize(18)
+    doc.setTextColor(30)
+    doc.text(title, margin, M.top)
+    
+    // Subtitle (e.g. SKU or "continuação")
+    if (subtitle) {
+      doc.setFontSize(10)
+      doc.setTextColor(100)
+      doc.text(subtitle, margin, M.top + 14)
+    }
+    
+    // Decorative line
+    doc.setDrawColor(230)
+    doc.line(margin, M.top + 24, pageW - margin, M.top + 24)
+  }
+
   function footer(pageNum: number) {
-    if (!config?.showFooterPageNumbers && !config?.showFooterBrand) return
-    doc.setFontSize(9)
-    doc.setTextColor(140)
-    const textParts: string[] = []
-    if (config?.showFooterBrand && config?.brandName) textParts.push(config.brandName)
-    if (config?.showFooterPageNumbers) textParts.push(`Página ${pageNum}`)
-    const txt = textParts.join('  •  ')
-    doc.text(txt, margin, footerY(pageH))
+    const fy = footerY(pageH)
+    
+    // Decorative line above footer
+    doc.setDrawColor(230)
+    doc.line(margin, fy - 25, pageW - margin, fy - 25)
+
+    // Left: Brand
+    doc.setFontSize(7)
+    doc.setTextColor(150)
+    doc.text('RAZAI TECIDOS', margin, fy - 10)
+
+    // Center: Pix
+    doc.setFontSize(8)
+    doc.setTextColor(50)
+    doc.text('Pix: razai.contato@gmail.com | Rafael Biscardi', pageW / 2, fy - 10, { align: 'center' })
+
+    // Center Bottom: Disclaimer
+    doc.setFontSize(6)
+    doc.setTextColor(120)
+    doc.text('Nota: As cores podem sofrer variação entre a imagem e o produto físico.', pageW / 2, fy + 2, { align: 'center' })
+
+    // Right: Page Number
+    if (config?.showFooterPageNumbers !== false) {
+      doc.setFontSize(8)
+      doc.setTextColor(150)
+      doc.text(`Página ${pageNum}`, pageW - margin, fy - 10, { align: 'right' })
+    }
   }
 
   let pageNum = 1
@@ -59,11 +112,11 @@ async function generateViaWeb({
     if (!dataUrl) return null
     if (dimCache.has(dataUrl)) return dimCache.get(dataUrl)!
     
-    await ensureDims(dataUrl)
+    // await ensureDims(dataUrl) - REMOVED: caused infinite recursion
 
     try {
       let base64Data: string | null = null;
-      let errors: string[] = [];
+      const errors: string[] = [];
 
       // Optimization 1: Direct Data URL usage (no fetch needed)
       if (dataUrl.startsWith('data:')) {
@@ -161,14 +214,10 @@ async function generateViaWeb({
   for (const item of items) {
     if (!firstFabric) addPage()
     else firstFabric = false
-    doc.setFontSize(20)
-    doc.setTextColor(30)
-    doc.text(item.tissueName, margin, margin)
-    doc.setFontSize(10)
-    doc.setTextColor(110)
-    doc.text(item.tissueSku, margin, margin + 16)
+    
+    drawPageHeader(item.tissueName, item.tissueSku)
 
-    let y = margin + 34
+    let y = margin + 45 // Increased top spacing below header
     doc.setFontSize(10)
     doc.setTextColor(50)
     const infoEntries: string[] = []
@@ -229,10 +278,8 @@ async function generateViaWeb({
       // Row-level check: if starting new row and it would overflow, break before drawing any cell in that row
       if (col === 0 && cellY + cellHeight + allowance > pageH) {
         startNewPage()
-        doc.setFontSize(14)
-        doc.setTextColor(80)
-        doc.text(`${item.tissueName} (continuação)`, margin, M.top)
-        y = M.top + 30
+        drawPageHeader(item.tissueName, '(continuação)')
+        y = M.top + 45
         row = 0
         col = 0
         cellX = offsetX + col * (thumbSize + gapX)
@@ -240,28 +287,35 @@ async function generateViaWeb({
       } else if (col > 0 && cellY + cellHeight + allowance > pageH) {
         // mid-row overflow: move entire row to next page (cells already drawn this row stay previous page)
         startNewPage()
-        doc.setFontSize(14)
-        doc.setTextColor(80)
-        doc.text(`${item.tissueName} (continuação)`, margin, M.top)
-        y = M.top + 30
+        drawPageHeader(item.tissueName, '(continuação)')
+        y = M.top + 45
         row = 0
         col = 0
         cellX = offsetX + col * (thumbSize + gapX)
         cellY = y + row * (cellHeight + gapY)
       }
-      // Thumbnail box
-      doc.setDrawColor(210)
-      doc.roundedRect(cellX, cellY, thumbSize, thumbSize, 6, 6)
+      // Card Background
+      drawCard(cellX, cellY, thumbSize, cellHeight)
+      
+      // Thumbnail box (inside card)
+      const imgSize = thumbSize - 16 // Padding inside card
+      const imgX = cellX + 8
+      const imgY = cellY + 8
+      
+      // Border around image
+      doc.setDrawColor(240)
+      doc.rect(imgX, imgY, imgSize, imgSize, 'S')
+
       const imgData = c.imageThumb
       if (imgData) {
         const dims = dimCache.get(imgData)
         if (dims && dims.data) {
-          const maxSide = thumbSize - 4
+          const maxSide = imgSize
           const scale = Math.min(maxSide / dims.w, maxSide / dims.h) || 1
           const drawW = Math.min(maxSide, dims.w * scale)
           const drawH = Math.min(maxSide, dims.h * scale)
-          const offX = cellX + 2 + (maxSide - drawW) / 2
-          const offY = cellY + 2 + (maxSide - drawH) / 2
+          const offX = imgX + (maxSide - drawW) / 2
+          const offY = imgY + (maxSide - drawH) / 2
           try {
             // Detect format from data URL (e.g. data:image/jpeg;base64,...)
             const match = dims.data.match(/^data:image\/(\w+);base64,/)
@@ -272,46 +326,48 @@ async function generateViaWeb({
           } catch (err) {
             console.error('[catalog-pdf] addImage failed for color:', c.colorSku, err)
             doc.setFillColor(c.hex || '#ccc')
-            doc.roundedRect(cellX + 2, cellY + 2, maxSide, maxSide, 4, 4, 'F')
+            doc.rect(imgX, imgY, maxSide, maxSide, 'F')
           }
         } else {
           // Falha ao obter dimensões ou dados: desenha fallback com texto de debug
           doc.setFillColor(c.hex || '#ccc')
-          doc.roundedRect(cellX + 2, cellY + 2, thumbSize - 4, thumbSize - 4, 4, 4, 'F')
+          doc.rect(imgX, imgY, imgSize, imgSize, 'F')
           
           // DEBUG: Print dataUrl snippet to PDF
           doc.setFontSize(8)
           doc.setTextColor(0, 0, 0) // Black
           const debugText = (imgData || 'null').substring(0, 50)
           const errText = (dims?.error || '').substring(0, 50)
-          doc.text(debugText, cellX + 4, cellY + 10, { maxWidth: thumbSize - 8 })
+          doc.text(debugText, imgX + 4, imgY + 10, { maxWidth: imgSize - 8 })
           if (errText) {
              doc.setTextColor(255, 0, 0) // Red
-             doc.text(errText, cellX + 4, cellY + 20, { maxWidth: thumbSize - 8 })
+             doc.text(errText, imgX + 4, imgY + 20, { maxWidth: imgSize - 8 })
           }
         }
       } else {
         doc.setFillColor(c.hex || '#eee')
-        doc.roundedRect(cellX + 2, cellY + 2, thumbSize - 4, thumbSize - 4, 4, 4, 'F')
+        doc.rect(imgX, imgY, imgSize, imgSize, 'F')
       }
       // Label
       const code = `${item.tissueSku}-${c.colorSku}`
       // Draw color name (handle multiple lines)
-      doc.setFontSize(8.5)
+      doc.setFontSize(9) // Slightly larger
       doc.setTextColor(30)
-      const nameYStart = cellY + thumbSize + line(2.5) // small offset from image
+      doc.setFont('helvetica', 'bold') // Bold name
+      const nameYStart = imgY + imgSize + line(3)
       let lineOffset = 0
       for (const ln of mName.lines) {
         doc.text(ln, cellX + thumbSize / 2, nameYStart + lineOffset, {
           align: 'center',
-          maxWidth: thumbSize - 4,
+          maxWidth: thumbSize - 10,
         })
         lineOffset += baseLabelLineHeight
       }
       // SKU code below
-      doc.setFontSize(7)
-      doc.setTextColor(110)
-      const skuY = nameYStart + nameHeight + line(1)
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(8)
+      doc.setTextColor(100)
+      const skuY = nameYStart + nameHeight + line(1.5)
       doc.text(code, cellX + thumbSize / 2, skuY, { align: 'center' })
 
       col++
@@ -363,19 +419,27 @@ async function generateViaWeb({
           cellX = offsetX + col * (thumbSize + gapX)
           cellY = currentY + row * (cellHeight + gapY)
         }
-        // Thumbnail rectangle
-        doc.setDrawColor(210)
-        doc.roundedRect(cellX, cellY, thumbSize, thumbSize, 6, 6)
+        // Card Background
+        drawCard(cellX, cellY, thumbSize, thumbSize + 30) // Fixed height for pattern cards for now
+
+        // Thumbnail box
+        const imgSize = thumbSize - 16
+        const imgX = cellX + 8
+        const imgY = cellY + 8
+        
+        doc.setDrawColor(240)
+        doc.rect(imgX, imgY, imgSize, imgSize, 'S')
+
         const imgData = p.imageThumb
         if (imgData) {
           const dims = dimCache.get(imgData)
           if (dims && dims.data) {
-            const maxSide = thumbSize - 4
+            const maxSide = imgSize
             const scale = Math.min(maxSide / dims.w, maxSide / dims.h) || 1
             const drawW = Math.min(maxSide, dims.w * scale)
             const drawH = Math.min(maxSide, dims.h * scale)
-            const offX = cellX + 2 + (maxSide - drawW) / 2
-            const offY = cellY + 2 + (maxSide - drawH) / 2
+            const offX = imgX + (maxSide - drawW) / 2
+            const offY = imgY + (maxSide - drawH) / 2
             try {
               // Detect format from data URL
               const match = dims.data.match(/^data:image\/(\w+);base64,/)
@@ -385,40 +449,42 @@ async function generateViaWeb({
             } catch (err) {
               console.error('[catalog-pdf] addImage failed for pattern:', p.patternSku, err)
               doc.setFillColor('#ddd')
-              doc.roundedRect(cellX + 2, cellY + 2, maxSide, maxSide, 4, 4, 'F')
+              doc.rect(imgX, imgY, maxSide, maxSide, 'F')
             }
           } else {
             doc.setFillColor('#ddd')
-            doc.roundedRect(cellX + 2, cellY + 2, thumbSize - 4, thumbSize - 4, 4, 4, 'F')
+            doc.rect(imgX, imgY, imgSize, imgSize, 'F')
             
             // DEBUG: Print dataUrl snippet to PDF
             doc.setFontSize(8)
             doc.setTextColor(0, 0, 0)
             const debugText = (imgData || 'null').substring(0, 50)
             const errText = (dims?.error || '').substring(0, 50)
-            doc.text(debugText, cellX + 4, cellY + 10, { maxWidth: thumbSize - 8 })
+            doc.text(debugText, imgX + 4, imgY + 10, { maxWidth: imgSize - 8 })
             if (errText) {
                doc.setTextColor(255, 0, 0)
-               doc.text(errText, cellX + 4, cellY + 20, { maxWidth: thumbSize - 8 })
+               doc.text(errText, imgX + 4, imgY + 20, { maxWidth: imgSize - 8 })
             }
           }
         } else {
           doc.setFillColor('#eee')
-          doc.roundedRect(cellX + 2, cellY + 2, thumbSize - 4, thumbSize - 4, 4, 4, 'F')
+          doc.rect(imgX, imgY, imgSize, imgSize, 'F')
         }
         // Pattern label
-        doc.setFontSize(8.5)
+        doc.setFontSize(9)
         doc.setTextColor(30)
-        doc.text(p.patternName, cellX + thumbSize / 2, cellY + thumbSize + 10, {
+        doc.setFont('helvetica', 'bold')
+        doc.text(p.patternName, cellX + thumbSize / 2, imgY + imgSize + 12, {
           align: 'center',
-          maxWidth: thumbSize - 4,
+          maxWidth: thumbSize - 10,
         })
-        doc.setFontSize(7)
-        doc.setTextColor(110)
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(8)
+        doc.setTextColor(100)
         doc.text(
           `${item.tissueSku}-${p.patternSku}`,
           cellX + thumbSize / 2,
-          cellY + thumbSize + 20,
+          imgY + imgSize + 22,
           { align: 'center' }
         )
         col++
@@ -431,38 +497,10 @@ async function generateViaWeb({
     footer(pageNum)
   }
 
-  // Summary metadata page
-  addPage()
-  doc.setFontSize(16)
-  doc.setTextColor(30)
-  doc.text('Resumo do Catálogo', margin, M.top)
-  doc.setFontSize(9.5)
-  doc.setTextColor(80)
-  let metaY = M.top + line(5)
+
   const generatedAt = new Date().toISOString()
   const colorsTotal = items.reduce((acc, it) => acc + it.colors.length, 0)
   const patternsTotal = items.reduce((acc, it) => acc + it.patterns.length, 0)
-  const metaLines: string[] = []
-  metaLines.push(`Gerado em: ${generatedAt}`)
-  if (config?.author) metaLines.push(`Autor: ${config.author}`)
-  if (config?.version) metaLines.push(`Versão: ${config.version}`)
-  metaLines.push(`Tecidos: ${items.length}`)
-  metaLines.push(`Cores: ${colorsTotal}`)
-  metaLines.push(`Estampas: ${patternsTotal}`)
-  if (filtersApplied) {
-    metaLines.push(`Filtros aplicados:`)
-    for (const [k, v] of Object.entries(filtersApplied)) {
-      if (v == null) continue
-      if (Array.isArray(v) && v.length === 0) continue
-      metaLines.push(` • ${k}: ${Array.isArray(v) ? v.join(', ') : v}`)
-    }
-  }
-  for (const ln of metaLines) {
-    doc.text(ln, margin, metaY, { maxWidth: pageW - margin * 2 })
-    metaY += line(3.5)
-    metaY = ensureSpace(doc, metaY, line(3.5), pageH) // guard if summary becomes long
-  }
-  footer(pageNum)
 
   const blob = doc.output('blob') as Blob
   return {
@@ -480,9 +518,7 @@ async function generateViaWeb({
   }
 }
 
-async function generateViaTauri(_params: GenerateCatalogPdfParams): Promise<CatalogPdfResult> {
-  throw new Error('tauri-rust PDF backend not implemented yet')
-}
+
 
 async function tryTauriSave(res: CatalogPdfResult): Promise<CatalogPdfResult | null> {
   if (!res.blob) {

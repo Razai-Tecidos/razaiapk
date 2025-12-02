@@ -56,8 +56,9 @@ export const CatalogPage: React.FC = () => {
       }
     } catch (e: any) {
       console.error(e)
-      setPdfStatus('Falha ao gerar PDF')
-      setTimeout(() => setPdfStatus(null), 4000)
+      console.error(e)
+      setPdfStatus(`Falha: ${e instanceof Error ? e.message : String(e)}`)
+      // setTimeout(() => setPdfStatus(null), 4000) // Keep it visible for debugging
     }
   }
 
