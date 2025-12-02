@@ -50,15 +50,44 @@ async function generateViaWeb({ items, config, filtersApplied }: GenerateCatalog
     if (!dataUrl) return null
     if (dimCache.has(dataUrl)) return dimCache.get(dataUrl)!
     try {
-      // Fetch image data explicitly to avoid jsPDF internal loading issues in Tauri
-      const response = await fetch(dataUrl)
-      const blob = await response.blob()
-      const base64Data = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onloadend = () => resolve(reader.result as string)
-        reader.onerror = reject
-        reader.readAsDataURL(blob)
-      })
+      let base64Data: string;
+      
+      if (isTauri()) {
+        // Use Tauri HTTP plugin to bypass CORS
+        try {
+          const { fetch } = await import('@tauri-apps/plugin-http');
+          const response = await fetch(dataUrl);
+          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+          const blob = await response.blob();
+          base64Data = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+        } catch (tauriErr) {
+          console.warn('Tauri HTTP fetch failed, falling back to native fetch:', tauriErr);
+          // Fallback to native fetch if plugin fails (e.g. dev mode without plugin)
+          const response = await window.fetch(dataUrl);
+          const blob = await response.blob();
+          base64Data = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+          });
+        }
+      } else {
+        // Web mode
+        const response = await fetch(dataUrl);
+        const blob = await response.blob();
+        base64Data = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      }
 
       const img = await new Promise<HTMLImageElement>((resolve, reject) => {
         const im = new Image()
