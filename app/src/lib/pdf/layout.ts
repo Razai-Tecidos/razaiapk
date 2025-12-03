@@ -11,12 +11,12 @@ export interface LayoutConfig {
 }
 
 export const LAYOUT: LayoutConfig = {
-  margin: { top: 60, right: 50, bottom: 70, left: 50 },
+  margin: { top: 75, right: 50, bottom: 40, left: 60 }, // Reduced margins to fit 3 rows
   baseline: 4,
   footerHeight: 50,
-  gap: { x: 24, y: 32 },
-  minThumb: 130,
-  maxThumb: 180,
+  gap: { x: 35, y: 25 }, // Reduced Y gap significantly
+  minThumb: 140,
+  maxThumb: 190,
 }
 
 export function line(mult: number): number { return mult * LAYOUT.baseline }

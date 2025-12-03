@@ -30,36 +30,46 @@ async function generateViaWeb({
   // --- Visual Helpers ---
 
   function drawCard(x: number, y: number, w: number, h: number) {
-    // Shadow
-    doc.setFillColor(230) // Light gray
-    doc.roundedRect(x + 2, y + 2, w, h, 4, 4, 'F')
-    // Card Body
-    doc.setFillColor(255)
-    doc.setDrawColor(220)
+    // Clean Flat Card (No Shadow)
+    doc.setFillColor(255, 255, 255)
+    doc.setDrawColor(230, 230, 235) // Subtle border
+    doc.setLineWidth(0.5)
+    // Draw card background
     doc.roundedRect(x, y, w, h, 4, 4, 'FD')
   }
 
   function drawPageHeader(title: string, subtitle?: string) {
-    // Brand Top-Left
-    doc.setFontSize(8)
-    doc.setTextColor(180, 160, 100) // Gold-ish accent
-    doc.text('RAZAI TECIDOS', margin, M.top - 20)
+    // Brand - Small, Uppercase, Spaced, Gold
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(180, 150, 80)
+    // Add simple tracking by spacing characters (manual simulation if needed, but standard is ok)
+    doc.text('RAZAI TECIDOS', margin, M.top - 30)
     
-    // Title
-    doc.setFontSize(18)
-    doc.setTextColor(30)
-    doc.text(title, margin, M.top)
+    // Title - Large, Modern, Dark
+    doc.setFontSize(32)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(20, 20, 25)
+    doc.text(title, margin, M.top + 5)
     
-    // Subtitle (e.g. SKU or "continuação")
+    // Subtitle (SKU) - Elegant Gray
     if (subtitle) {
-      doc.setFontSize(10)
-      doc.setTextColor(100)
-      doc.text(subtitle, margin, M.top + 14)
+      doc.setFontSize(12)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(140, 140, 150)
+      doc.text(subtitle, margin, M.top + 22)
     }
     
-    // Decorative line
-    doc.setDrawColor(230)
-    doc.line(margin, M.top + 24, pageW - margin, M.top + 24)
+    // Minimalist Divider
+    const lineY = M.top + 35
+    // Small gold accent
+    doc.setDrawColor(180, 150, 80)
+    doc.setLineWidth(2)
+    doc.line(margin, lineY, margin + 40, lineY)
+    // Long subtle gray line
+    doc.setDrawColor(230, 230, 235)
+    doc.setLineWidth(0.5)
+    doc.line(margin + 40, lineY, pageW - margin, lineY)
   }
 
   function footer(pageNum: number) {
@@ -217,7 +227,7 @@ async function generateViaWeb({
     
     drawPageHeader(item.tissueName, item.tissueSku)
 
-    let y = margin + 45 // Increased top spacing below header
+    let y = margin + 80 // Increased spacing below header (was 60)
     doc.setFontSize(10)
     doc.setTextColor(50)
     const infoEntries: string[] = []
@@ -242,12 +252,12 @@ async function generateViaWeb({
     }
 
     // Separator line below metadata
-    doc.setDrawColor(200)
-    doc.line(margin, y + 4, pageW - margin, y + 4)
-    y += 20
+    doc.setDrawColor(230) // Lighter separator
+    doc.line(margin, y + 8, pageW - margin, y + 8)
+    y += 35 // Much more space before grid starts
 
-    // Color thumbnails grid (dynamic columns)
-    const grid = computeGrid(pageW)
+    // Color thumbnails grid (FIXED 3 columns as per design requirement)
+    const grid = computeGrid(pageW, 3) // Force 3 columns
     const thumbSize = grid.thumbSize
     // dynamic label height (max of one line baseline or measured height)
     const baseLabelLineHeight = LH_SMALL
@@ -278,8 +288,8 @@ async function generateViaWeb({
       // Row-level check: if starting new row and it would overflow, break before drawing any cell in that row
       if (col === 0 && cellY + cellHeight + allowance > pageH) {
         startNewPage()
-        drawPageHeader(item.tissueName, '(continuação)')
-        y = M.top + 45
+        // Header removed for continuation pages as per user request
+        y = M.top
         row = 0
         col = 0
         cellX = offsetX + col * (thumbSize + gapX)
@@ -287,24 +297,19 @@ async function generateViaWeb({
       } else if (col > 0 && cellY + cellHeight + allowance > pageH) {
         // mid-row overflow: move entire row to next page (cells already drawn this row stay previous page)
         startNewPage()
-        drawPageHeader(item.tissueName, '(continuação)')
-        y = M.top + 45
+        // Header removed for continuation pages as per user request
+        y = M.top
         row = 0
         col = 0
         cellX = offsetX + col * (thumbSize + gapX)
         cellY = y + row * (cellHeight + gapY)
       }
-      // Card Background
-      drawCard(cellX, cellY, thumbSize, cellHeight)
+      // Thumbnail box (Full Width)
+      const imgSize = thumbSize // Full width
+      const imgX = cellX
+      const imgY = cellY
       
-      // Thumbnail box (inside card)
-      const imgSize = thumbSize - 16 // Padding inside card
-      const imgX = cellX + 8
-      const imgY = cellY + 8
-      
-      // Border around image
-      doc.setDrawColor(240)
-      doc.rect(imgX, imgY, imgSize, imgSize, 'S')
+      // No border around image itself, the card border handles it.
 
       const imgData = c.imageThumb
       if (imgData) {
@@ -400,35 +405,25 @@ async function generateViaWeb({
         let cellY = currentY + row * (cellHeight + gapY)
         if (col === 0 && cellY + cellHeight + allowance > pageH) {
           startNewPage()
-          doc.setFontSize(14)
-          doc.setTextColor(80)
-          doc.text(`${item.tissueName} (continuação)`, margin, M.top)
-          currentY = M.top + 30
+          // Header removed for continuation pages
+          currentY = M.top
           col = 0
           row = 0
           cellX = offsetX + col * (thumbSize + gapX)
           cellY = currentY + row * (cellHeight + gapY)
         } else if (col > 0 && cellY + cellHeight + allowance > pageH) {
           startNewPage()
-          doc.setFontSize(14)
-          doc.setTextColor(80)
-          doc.text(`${item.tissueName} (continuação)`, margin, M.top)
-          currentY = M.top + 30
+          // Header removed for continuation pages
+          currentY = M.top
           col = 0
           row = 0
           cellX = offsetX + col * (thumbSize + gapX)
           cellY = currentY + row * (cellHeight + gapY)
         }
-        // Card Background
-        drawCard(cellX, cellY, thumbSize, thumbSize + 30) // Fixed height for pattern cards for now
-
-        // Thumbnail box
-        const imgSize = thumbSize - 16
-        const imgX = cellX + 8
-        const imgY = cellY + 8
-        
-        doc.setDrawColor(240)
-        doc.rect(imgX, imgY, imgSize, imgSize, 'S')
+        // Thumbnail box (Full Width)
+        const imgSize = thumbSize
+        const imgX = cellX
+        const imgY = cellY
 
         const imgData = p.imageThumb
         if (imgData) {
