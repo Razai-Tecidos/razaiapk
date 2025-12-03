@@ -29,14 +29,7 @@ async function generateViaWeb({
 
   // --- Visual Helpers ---
 
-  function drawCard(x: number, y: number, w: number, h: number) {
-    // Clean Flat Card (No Shadow)
-    doc.setFillColor(255, 255, 255)
-    doc.setDrawColor(230, 230, 235) // Subtle border
-    doc.setLineWidth(0.5)
-    // Draw card background
-    doc.roundedRect(x, y, w, h, 4, 4, 'FD')
-  }
+
 
   function drawPageHeader(title: string, subtitle?: string) {
     // Brand - Small, Uppercase, Spaced, Gold
@@ -262,7 +255,7 @@ async function generateViaWeb({
     // dynamic label height (max of one line baseline or measured height)
     const baseLabelLineHeight = LH_SMALL
     // We'll compute per-cell label height; keep a nominal for initial cellHeight
-    const nominalLabelHeight = baseLabelLineHeight + line(2) // include SKU line spacing
+    const nominalLabelHeight = baseLabelLineHeight + line(2) + line(1.5) // include SKU + Status
     let cellHeight = thumbSize + nominalLabelHeight + line(3)
     const gapX = LAYOUT.gap.x
     const gapY = LAYOUT.gap.y
@@ -281,7 +274,7 @@ async function generateViaWeb({
       doc.setFontSize(8.5)
       const mName = measureText(doc, c.colorName, thumbSize - 4, baseLabelLineHeight)
       const nameHeight = Math.max(baseLabelLineHeight, mName.height)
-      const perCellLabelHeight = nameHeight + line(2) // SKU line baseline + spacing
+      const perCellLabelHeight = nameHeight + line(2) + line(1.5) // SKU + Status line
       cellHeight = thumbSize + perCellLabelHeight + line(3)
       let cellX = offsetX + col * (thumbSize + gapX)
       let cellY = y + row * (cellHeight + gapY)
@@ -369,11 +362,19 @@ async function generateViaWeb({
         lineOffset += baseLabelLineHeight
       }
       // SKU code below
-      doc.setFont('helvetica', 'normal')
-      doc.setFontSize(8)
-      doc.setTextColor(100)
       const skuY = nameYStart + nameHeight + line(1.5)
       doc.text(code, cellX + thumbSize / 2, skuY, { align: 'center' })
+
+      // Status below SKU
+      const statusY = skuY + line(1.2)
+      doc.setFontSize(7)
+      if (c.status === 'Inativo') {
+        doc.setTextColor(224, 49, 49) // Soft Red #E03131
+        doc.text('Indisponível', cellX + thumbSize / 2, statusY, { align: 'center' })
+      } else {
+        doc.setTextColor(47, 158, 68) // Green #2F9E44
+        doc.text('Disponível', cellX + thumbSize / 2, statusY, { align: 'center' })
+      }
 
       col++
       if (col >= cols) {

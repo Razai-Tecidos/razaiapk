@@ -62,7 +62,7 @@ export default function ShowcaseTissueDetails() {
           .from('links')
           .select('*, tissues(*), colors(*)')
           .eq('tissue_id', id)
-          .eq('status', 'Ativo')
+          .eq('tissue_id', id)
         
         if (lError) throw lError
         
@@ -71,6 +71,7 @@ export default function ShowcaseTissueDetails() {
           skuFilho: l.sku_filho,
           colorName: l.colors?.name,
           hex: l.colors?.hex,
+          status: l.status,
           image: l.image_path ? supabase.storage.from('tissue-images').getPublicUrl(l.image_path).data.publicUrl : null
         }))
         
@@ -188,7 +189,8 @@ export default function ShowcaseTissueDetails() {
                 display: 'block',
                 background: DS.color.surface,
                 transition: 'all 0.2s ease',
-                boxShadow: DS.shadow.xs
+                boxShadow: DS.shadow.xs,
+                opacity: link.status === 'Inativo' ? 0.7 : 1
               }}
               onMouseOver={e => {
                 e.currentTarget.style.transform = 'translateY(-4px)'
@@ -204,7 +206,7 @@ export default function ShowcaseTissueDetails() {
                   <img 
                     src={link.image} 
                     alt={link.colorName} 
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', filter: link.status === 'Inativo' ? 'grayscale(30%)' : 'none' }} 
                   />
                 ) : (
                   <div style={{ 
@@ -226,6 +228,15 @@ export default function ShowcaseTissueDetails() {
                 </div>
                 <div style={{ fontSize: DS.font.size.xs, color: DS.color.textSecondary, fontFamily: 'monospace' }}>
                   {link.skuFilho}
+                </div>
+                <div style={{ 
+                  marginTop: DS.spacing(2), 
+                  fontSize: '11px', 
+                  fontWeight: 600, 
+                  color: link.status === 'Inativo' ? '#E03131' : '#2F9E44',
+                  textTransform: 'uppercase'
+                }}>
+                  {link.status === 'Inativo' ? 'Indisponível' : 'Disponível'}
                 </div>
               </div>
             </Link>

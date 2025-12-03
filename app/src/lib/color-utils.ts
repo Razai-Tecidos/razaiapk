@@ -125,24 +125,58 @@ const TARGET_WHITE = {
  * Ajusta os valores baseados na diferença entre o branco do dispositivo e o branco ideal.
  */
 export function compensateLab(raw: LAB): LAB {
+  // 1. Compensação de Ponto Branco (White Balance)
   const deltaL = TARGET_WHITE.L - DEVICE_WHITE_POINT.L;
   const deltaA = TARGET_WHITE.a - DEVICE_WHITE_POINT.a;
   const deltaB = TARGET_WHITE.b - DEVICE_WHITE_POINT.b;
 
+  let L = Math.min(100, Math.max(0, raw.L + deltaL));
+  let a = raw.a + deltaA;
+  let b = raw.b + deltaB;
+
+  // 2. Smart Compensation (Modo Vívido Automático)
+  // Corrige a tendência do sensor de escurecer vermelhos e azuis profundos
+  const chroma = Math.sqrt(a * a + b * b);
+  const hue = labHueAngle({ L, a, b });
+
+  // Detecção de Azul Profundo (Royal/Oceano) que está saindo escuro
+  // Hue ~260-310 (Azul/Roxo) ou b* fortemente negativo
+  // Problema: L baixo (< 35) e Chroma moderado/alto
+  if (L < 45 && b < -15) {
+    // Boost progressivo SUAVE: apenas para tirar o aspecto "preto"
+    // Fator reduzido: L=25 -> ganho de ~13% (antes era 20%)
+    const boostFactor = 1.0 + (45 - L) / 150; 
+    L = L * boostFactor;
+    
+    // Leve toque de saturação (5%)
+    a = a * 1.05;
+    b = b * 1.05;
+  }
+
+  // Detecção de Vermelho Escuro que deveria ser vivo
+  // Hue 340-20, L < 40
+  if (L < 40 && (hue > 340 || hue < 20) && chroma > 20) {
+    // Boost SUAVE: L=20 -> ganho de ~16% (antes era 25%)
+    const boostFactor = 1.0 + (40 - L) / 120;
+    L = L * boostFactor;
+    
+    // Mínimo toque de chroma (2%)
+    a = a * 1.02;
+    b = b * 1.02;
+  }
+
   return {
-    L: Number(Math.min(100, Math.max(0, raw.L + deltaL)).toFixed(2)),
-    a: Number((raw.a + deltaA).toFixed(2)),
-    b: Number((raw.b + deltaB).toFixed(2))
+    L: Number(L.toFixed(2)),
+    a: Number(a.toFixed(2)),
+    b: Number(b.toFixed(2))
   };
 }
 
 // CIE76 metric not used; keeping only CIEDE2000 implementation.
 
 // Funções auxiliares para CIEDE2000
-function degrees(n: number) { return n * 180 / Math.PI }
 function radians(n: number) { return n * Math.PI / 180 }
 
-function atan2deg(y: number, x: number) { const ang = degrees(Math.atan2(y, x)); return ang < 0 ? ang + 360 : ang }
 
 export function ciede2000(lab1: LAB, lab2: LAB): number {
   // Implementação baseada na publicação original e dados de Bruce Lindbloom
@@ -308,14 +342,14 @@ export function inferFamilyFrom({ hex, labL, labA, labB }: { hex?: string; labL?
 
   // Bordô: vinhos escuros (profundos) entre vermelho e início de laranja com b* baixo relativo
   // Critérios (derivados dos 6 hex fornecidos):
-  //  - L < 40% (escuro)
+  //  - L < 32% (REDUZIDO de 40% para 32% a pedido do usuário: "vermelho escuro" deve ser Vermelho)
   //  - hue dentro do arco 345°–25° (wrap) => (hue >= 345 || hue < 25)
   //  - a* > 18 (vermelho/magenta dominante)
   //  - b* >= 0 (evita burgundy mais púrpura #762F55 manter em Vermelho)
   //  - |b*| < a* * 0.5 (evita tons mais alaranjados / marrons como #8F1C2C? ainda entra pois ratio ~0.44)
   //  - chroma entre 18 e 60 (evita cinzas e saturações extremas irrelevantes)
   // Isso captura: #612B33 #4A1526 #672637 #812B38 #542C38 #8F1C2C
-  if (light < 0.40 && (hue >= 345 || hue < 25) && a > 18 && b >= 0) {
+  if (light < 0.32 && (hue >= 345 || hue < 25) && a > 18 && b >= 0) {
     const chroma = Math.sqrt(a*a + b*b)
     if (chroma >= 18 && chroma <= 60 && Math.abs(b) < a * 0.5) {
       return 'Bordô'
