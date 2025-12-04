@@ -44,6 +44,9 @@ class MockJsPDF {
   line(){}
   addPage(){}
   splitTextToSize(t: string){ return [t] }
+  setFont(){}
+  setLineWidth(){}
+  rect(){}
   output(){ return new Blob(['pdf'], { type: 'application/pdf' }) }
   addImage(...args: any[]) { addImageSpy(...args) }
 }
